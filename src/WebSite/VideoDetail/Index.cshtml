@@ -1,0 +1,63 @@
+﻿@page "{Id:Guid}"
+@using Website.Shared
+@model VideoDetailModel
+@{
+    ViewData["Title"] = "Video detail";
+}
+<div>
+    <div class="text-center">
+        <iframe src="@Model.PreviewLink" target="_blank" class="w-25 h-25"></iframe>
+    </div>
+    <div class="text-center">@Model.Filename</div>
+    <form asp-page-handler="EditVideo" method="post" class="">
+        <div class="row">
+            <div class="form-group col-md-2">
+                <label asp-for="Duration" class="form-label">Duration</label>
+                <input type="text" class="form-control" asp-for="Duration">
+            </div>
+            <div class="form-group col-md-2">
+                <label asp-for="NumSequences" class="form-label"># sequences</label>
+                <input type="number" class="form-control" asp-for="NumSequences">
+            </div>
+        </div>
+        <div class="form-group col-md-2">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+    <div class="col-md-6">
+        @await Html.PartialAsync("_VideoTagsEditor", new VideoTags(Model.Id, Model.Tags, Model.AllTags))
+    </div>
+    <div class="col-md-2">
+        Watches:
+        @foreach (var watch in Model.Watches)
+        {
+            <form asp-page-handler="DeleteWatch" method="post">
+                <div class="input-group">
+                    <input type="hidden" name="videoId" value="@Model.Id"/>
+                    <input type="date" class="form-control disabled" name="watchDate" value="@(watch?.ToString("O"))"/>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        }
+        <form asp-page-handler="WatchVideo" method="post">
+            <div class="input-group">
+                <input type="hidden" name="videoId" value="@Model.Id"/>
+                <input type="date" class="form-control" name="watchDate" value="@DateOnly.FromDateTime(DateTime.Now.Hour <= 5 ? DateTime.Today.AddDays(-1) : DateTime.Today).ToString("O")"/>
+                <button type="submit" class="btn btn-primary">Watch</button>
+            </div>
+        </form>
+        <form asp-page-handler="DeleteVideo" method="post" asp-route-returnUrl="/">
+            <input type="hidden" name="videoId" value="@Model.Id"/>
+            <button type="submit" class="btn btn-danger">Delete video</button>
+        </form>
+    </div>
+    <form asp-page-handler="EditVideo2" method="post" class="">
+        <div class="form-group col-md-2">
+            <label asp-for="Comments" class="form-label">Comments</label>
+            <textarea class="form-control" asp-for="Comments" rows="3"></textarea>
+        </div>
+        <div class="form-group col-md-2">
+            <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+</div>

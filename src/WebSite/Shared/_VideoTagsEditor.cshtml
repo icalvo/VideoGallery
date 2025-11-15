@@ -1,0 +1,54 @@
+﻿@using Microsoft.AspNetCore.Http.Extensions
+@model Website.Shared.VideoTags
+@{
+    const string renderedScriptsKey = "RenderedScripts";
+    var renderedBlocks =
+        ViewContext.HttpContext.Items[renderedScriptsKey] as HashSet<string> ?? [];
+    ViewContext.HttpContext.Items[renderedScriptsKey] = renderedBlocks;
+}
+
+@foreach (var tag in Model.Tags)
+{
+        <span class="badge rounded-pill" style="color: @tag.ForegroundColor.CssName; background-color: @tag.BackgroundColor.CssName">@tag.Name
+        <form asp-page-handler="DeleteVideoTag" method="post" class="d-inline" asp-route-returnUrl="@Context.Request.GetEncodedPathAndQuery()">
+            <input type="hidden" name="videoId" value="@Model.VideoId"/>
+            <input type="hidden" name="tagId" value="@tag.Id"/>
+            <button type="submit" class="badge rounded-pill text-bg-danger">x</button>
+        </form>
+    </span>
+}
+<form asp-page-handler="AddVideoTags" method="post" class="d-inline" asp-route-returnUrl="@Context.Request.GetEncodedPathAndQuery()">
+    <input type="hidden" name="videoId" value="@Model.VideoId"/>
+    <input id="tags@(Model.VideoId.ToString("N"))" class="w-25 d-inline mt-1 form-control form-control-sm taginput" type="email" name="tags" placeholder="comma separated tags" multiple="multiple" list="alltags" />
+    @if (renderedBlocks.Add("TagDataList"))
+    { 
+        <datalist id="alltags">
+            @foreach (var tag in Model.AllTags)
+            {
+                <option value="@tag">@tag</option>
+            }
+        </datalist>
+    }
+    
+    @if (renderedBlocks.Add("TagInputScripts"))
+    {
+        <script location="page">
+            (function() {
+                const inputs = document.querySelectorAll(".taginput");
+                for (const input of inputs) {
+                    input.addEventListener("focusin", function() {
+                        this.setAttribute("type", "email");
+                    });
+                    input.addEventListener("focusout", function() {
+                        this.setAttribute("type", "text");
+                    });
+                    input.addEventListener("keypress", function(e) {
+                        if (e.key === "Enter") {
+                            input.setAttribute("type", "text");
+                        }
+                    })
+                }
+            })();
+        </script>
+    }
+</form>

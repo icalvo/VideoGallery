@@ -1,0 +1,442 @@
+﻿@page
+@using System.Globalization
+@model CalendarModel
+@{
+    ViewData["Title"] = "Calendar";
+}
+
+<style>
+    .wrapper {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .calendar-container {
+        width: 80vw;
+        padding: 1.25rem;
+    }
+
+    .calendar {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .stat-block {
+        display: flex;
+        flex-direction: column;
+        padding: 1.25rem;
+    }
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        padding-right: 0.5rem;
+
+        .weekday {
+            background-color: #f8f9fa;
+            border-bottom: 0.125rem solid #dee2e6;
+        }
+    }
+
+    .weekday {
+        padding: 0.9375rem;
+        text-align: center;
+        font-weight: bold;
+        border-right: 0.0625rem solid #dee2e6;
+        height: 3.125rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .weekday:last-child {
+        border-right: none;
+    }
+
+    .calendar-body {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        overflow-y: auto;
+        flex-grow: 1;
+        scrollbar-gutter: stable;
+    }
+
+    .calendar-day {
+        min-height: 7.5rem;
+        border-right: 0.0625rem solid #dee2e6;
+        border-bottom: 0.0625rem solid #dee2e6;
+        padding: 0.625rem;
+    }
+
+    .calendar-day.even {
+        background-color: lightyellow;
+    }
+
+    .calendar-day.odd {
+        background-color: lightcyan;
+    }
+
+    .calendar-day.month-change.even {
+        background: linear-gradient(lightyellow, lightcyan);
+    }
+
+    .calendar-day.month-change.odd {
+        background: linear-gradient(lightcyan, lightyellow);
+    }
+
+    .calendar-day:nth-child(8n) {
+        border-right: none;
+    }
+
+    .day-number {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 0.625rem;
+        color: #495057;
+    }
+
+    .events {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3125rem;
+    }
+
+    .event {
+        background-color: lightcoral;
+        padding: 0.3125rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.9em;
+        color: #495057;
+        word-wrap: break-word;
+    }
+
+    /* Scrollbar styling */
+    .calendar-body::-webkit-scrollbar {
+        width: 0.5rem;
+    }
+
+    .calendar-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .calendar-body::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 0.25rem;
+    }
+
+    .calendar-body::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        padding: 0;
+        border-radius: 0.5rem;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        color: #495057;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: #000;
+        text-decoration: none;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .form-group textarea {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        font-family: inherit;
+        font-size: 0.9rem;
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .modal-actions button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        background-color: #fff;
+        color: #495057;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .modal-actions button[type="submit"] {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .modal-actions button:hover {
+        background-color: #e9ecef;
+    }
+
+    .modal-actions button[type="submit"]:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+
+    /* Note icon styling */
+    .note-icon {
+        cursor: pointer;
+        margin-left: 0.25rem;
+        font-size: 0.8em;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .note-icon:hover {
+        opacity: 1;
+    }
+
+    /* Screen reader only class for accessibility */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+</style>
+<div class="wrapper">
+    <div class="stat-block">
+        @foreach (var stat in Model.YearlyStats!)
+        {
+            <div class="stat-value"><b>@(stat.Year?.ToString() ?? "All time"): </b>@stat.Count events,
+                @stat.AvgSepInDays.ToString("F1") days between events</div>
+        }
+    </div>
+    <div class="calendar-container">
+        <div class="calendar">
+            <div class="calendar-header">
+                <div class="weekday"></div>
+                <div class="weekday">Monday</div>
+                <div class="weekday">Tuesday</div>
+                <div class="weekday">Wednesday</div>
+                <div class="weekday">Thursday</div>
+                <div class="weekday">Friday</div>
+                <div class="weekday">Saturday</div>
+                <div class="weekday">Sunday</div>
+            </div>
+            <div class="calendar-body">
+                @foreach (var week in Model.Weeks!)
+                {
+                    var isFirstEven = week.First().Date.Month % 2 == 0;
+                    if (week.First().Date.Month != week.Last().Date.Month)
+                    {
+                        <div class="calendar-day month-change @(isFirstEven ? " even" : " odd")">
+                            <div class="day-number">@week.Last().Date.ToString("MMM yy", CultureInfo.InvariantCulture)</div>
+                        </div>
+                    }
+                    else if (week.First().Date.Day == 1)
+                    {
+                        <div class="calendar-day @(isFirstEven ? " even" : " odd")">
+                            <div class="day-number">@week.Last().Date.ToString("MMM yy", CultureInfo.InvariantCulture)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="calendar-day @(isFirstEven ? " even" : " odd")"></div>
+                    }
+
+                    foreach (var day in week)
+                    {
+                        <div class="calendar-day @(day.Date.Month % 2 == 0 ? "even" : "odd")">
+                            <div class="day-number">@day.Date.Day</div>
+                            <div class="events">
+                                @foreach (var ev in day.Events)
+                                {
+                                    if (ev.Id.HasValue)
+                                    {
+                                        <div class="event" 
+                                             title="@ev.Tooltip" 
+                                             data-video-id="@ev.Id" 
+                                             data-watch-date="@day.Date.ToString("yyyy-MM-dd")" 
+                                             data-description="@ev.Description">
+                                            <a asp-page="/VideoDetail/Index" asp-route-id="@ev.Id">@ev.Title</a>
+                                            <span class="note-icon" onclick="openDescriptionModal(this)" title="Edit watch notes">📝</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="event" title="@ev.Tooltip">@ev.Title</div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Description Modal -->
+<div id="descriptionModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Watch notes</h3>
+            <span class="close" onclick="closeDescriptionModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="descriptionForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalVideoId" name="videoId" />
+                <input type="hidden" id="modalWatchDate" name="date" />
+                <div class="form-group">
+                    <label for="modalDescription" class="sr-only">Description:</label>
+                    <textarea id="modalDescription" name="description" rows="4" placeholder="Enter notes for this watch..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeDescriptionModal()">Cancel</button>
+                    <button type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.scrollTo(0, document.body.scrollHeight);
+    
+    function openDescriptionModal(noteIcon) {
+        const eventElement = noteIcon.parentElement;
+        const videoId = eventElement.getAttribute('data-video-id');
+        const watchDate = eventElement.getAttribute('data-watch-date');
+        const description = eventElement.getAttribute('data-description') || '';
+        
+        document.getElementById('modalVideoId').value = videoId;
+        document.getElementById('modalWatchDate').value = watchDate;
+        document.getElementById('modalDescription').value = description;
+        
+        document.getElementById('descriptionModal').style.display = 'flex';
+    }
+    
+    function closeDescriptionModal() {
+        document.getElementById('descriptionModal').style.display = 'none';
+    }
+    
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('descriptionModal');
+        if (event.target === modal) {
+            closeDescriptionModal();
+        }
+    }
+    
+    // Handle form submission
+    document.getElementById('descriptionForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const videoId = formData.get('videoId');
+        const date = formData.get('date');
+        const description = formData.get('description');
+        
+        try {
+            const response = await fetch('?handler=UpdateWatchDescription', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `videoId=${encodeURIComponent(videoId)}&date=${encodeURIComponent(date)}&description=${encodeURIComponent(description)}`
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update the data attribute on the event element
+                const eventElement = document.querySelector(`[data-video-id="${videoId}"][data-watch-date="${date}"]`);
+                if (eventElement) {
+                    eventElement.setAttribute('data-description', description);
+                }
+                closeDescriptionModal();
+            } else {
+                alert('Error saving description: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error saving description: ' + error.message);
+        }
+    });
+</script>
+

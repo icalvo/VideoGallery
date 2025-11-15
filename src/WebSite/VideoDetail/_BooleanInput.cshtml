@@ -1,0 +1,23 @@
+﻿@model (ThreeStateBoolean flag, string id, string label)
+<fieldset class="form-group">
+    <div class="row">
+        <legend class="col-form-label col-sm-2 pt-0">@Model.label</legend>
+        <div class="col-sm-10">
+            <div class="form-check">
+                <input type="radio" class="form-check-input" name="@Model.id" id="trueOption" value="True"
+                       checked="@(Model.flag == ThreeStateBoolean.True)">
+                <label class="form-check-label" for="trueOption">Yes</label>
+            </div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input" name="@Model.id" id="falseOption" value="False"
+                       checked="@(Model.flag == ThreeStateBoolean.False)">
+                <label class="form-check-label" for="falseOption">No</label>
+            </div>
+            <div class="form-check">
+                <input type="radio" class="form-check-input" name="@Model.id" id="nullOption" value="None"
+                       checked="@(Model.flag == ThreeStateBoolean.None)">
+                <label class="form-check-label" for="nullOption">N/A</label>
+            </div>
+        </div>
+    </div>
+</fieldset>

@@ -1,0 +1,14 @@
+﻿@using static Library.Parsing.SortingType
+@switch (Model)
+{
+    case Ascending:
+        <i class="bi bi-arrow-up-square-fill"></i>
+        break;
+    case Descending:
+        <i class="bi bi-arrow-down-square-fill"></i>
+        break;
+    case None:
+    default:
+        <i class="bi bi-filter-square-fill"></i>
+        break;
+}
