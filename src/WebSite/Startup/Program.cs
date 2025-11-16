@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using NReco.Logging.File;
 using VideoGallery.Interfaces;
 using VideoGallery.Library.DefaultPlugin;
 using VideoGallery.Website.Auth;
@@ -23,18 +22,7 @@ namespace VideoGallery.Website.Startup
         {
             Environment.CurrentDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? Environment.CurrentDirectory;
             var builder = WebApplication.CreateBuilder(args);
-            builder.Logging.AddFile("app.log", o =>
-            {
-                o.FileSizeLimitBytes = 1_000_000;
-                o.MaxRollingFiles = 20;
-            });
-            var sc = new ServiceCollection();
-            sc.AddLogging(b => b.AddFile("startup.log", append: true));
-            var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Starting up...");
             var extensionType = PluginLocator.TryFindPluginType() ?? typeof(DefaultTagValidation);
-
-            logger.LogInformation("Using tag validation extension: {ExtensionType}", extensionType.FullName);
             builder.Services.TryAddScoped(typeof(ITagValidation), extensionType);
 
             MiscStartup.SetupBuilder(builder);
