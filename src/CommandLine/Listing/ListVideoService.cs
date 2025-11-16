@@ -58,7 +58,7 @@ public static class ListVideoService
                 ..settings.PrintIndexes ? new[] {new Text(i.ToString())} : [],
                 new Text(video.Filename) { Overflow = Overflow.Ellipsis },
                 new Text(video.Duration.ToString("hh':'mm':'ss")),
-                new Text(video.Actors ?? string.Empty),
+                new Text(video.Tags.FirstOrDefault(t => t.TagCategoryId == 'a')?.Name ?? string.Empty),
                 ]);
             i++;
         }

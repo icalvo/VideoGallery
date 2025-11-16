@@ -12,17 +12,26 @@ using VideoGallery.Interfaces;
 namespace VideoGallery.Library;
 
 public record PackageSpec(string PackageId, string Version);
-public class PluginLoader(string packagesFolder)
+
+public class PluginLoader(string packagesFolder, ILogger logger)
 {
-    
-    public static async Task<bool> LoadExtensions(IConfiguration configuration,
+    public static async Task<bool> LoadExtensions(
+        Microsoft.Extensions.Logging.ILogger logger,
+        IConfiguration configuration,
         Action<Type> tagValidationType)
     {
-        var extensionCache = configuration.GetValue<string>("ExtensionFolder") ?? Path.Combine(Directory.GetCurrentDirectory(), "Extensions");
+        var loggerProxy = new LoggerProxy(logger);
+        var extensionCache = configuration.GetValue<string>("ExtensionFolder") ?? "Extensions";
+        extensionCache = Path.GetFullPath(extensionCache);
         var extension = configuration.GetSection("ExtensionPackage").Get<PackageSpec>();
-        var sources = configuration.GetSection("PackageSources").Get<string[]>() ?? [];
-        if (extension == null) return false;
-        var loader = new PluginLoader(extensionCache);
+        var sources = configuration.GetSection("ExtensionSources").Get<string[]>() ?? [];
+        if (extension == null)
+        {
+            loggerProxy.LogInformation("No extension package specified.");
+            return false;
+        }
+
+        var loader = new PluginLoader(extensionCache, loggerProxy);
         var tagValidationLoaded = false;
         await loader.LoadPackages(
             [extension], 
@@ -31,14 +40,21 @@ public class PluginLoader(string packagesFolder)
             {
                 var type = assembly.ExportedTypes.FirstOrDefault(x => 
                     x is { IsClass: true, IsPublic: true } && x.IsAssignableTo(typeof(ITagValidation)));
-                if (type == null) return;
+                if (type == null)
+                {
+                    loggerProxy.LogInformation($"No tag validation class found in {assembly.FullName}");
+                    return;
+                }
+
+                loggerProxy.LogInformation($"Tag validation class {type.Name} found in {assembly.FullName}");
                 tagValidationType(type);
                 tagValidationLoaded = true;
             });
         return tagValidationLoaded;
 
     }
-    public async Task LoadPackages(
+
+    private async Task LoadPackages(
         IEnumerable<PackageSpec> packages,
         IEnumerable<string> packageSources,
         Action<Assembly> processAssembly,
@@ -47,25 +63,32 @@ public class PluginLoader(string packagesFolder)
         CancellationToken ct = default)
     {
         var packageSourcesArray = packageSources as string[] ?? packageSources.ToArray();
+        if (packageSourcesArray.Length == 0)
+        {
+            logger.LogWarning("No package sources specified.");
+            return;
+        }
+
         foreach (var package in packages)
         {
             try
             {
-                await LoadPackageAsync(
+                await LoadPackage(
                     package.PackageId,
                     package.Version,
                     processAssembly,
                     packageSourcesArray,
                     loadedNugetPackages, failedNugetPackages, ct); // lists
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError($"Failed to load {package.PackageId}: {ex.Message}");
                 failedNugetPackages?.Add(package.PackageId);
             }
         }
     }
 
-    private async Task LoadPackageAsync(
+    private async Task LoadPackage(
         string packageId, 
         string versionRange, 
         Action<Assembly> processAssembly, 
@@ -76,8 +99,8 @@ public class PluginLoader(string packagesFolder)
     {
         successPackages ??= new List<string>();
         failedPackages ??= new List<string>();
+        logger.LogInformation($"Loading {packageId} {versionRange}");
 
-        var logger = NullLogger.Instance;
         var cache = new SourceCacheContext();
         var repositories = Repository.Provider.GetCoreV3().ToArray(); // gets the default nuget.org store
 
@@ -92,12 +115,18 @@ public class PluginLoader(string packagesFolder)
             if (!source.StartsWith("http"))
             {
                 // local packages
-                var sourceRepository = Repository.Factory.GetCoreV3(source); // local path
+                var fullSource = Path.GetFullPath(source);
+                logger.LogInformation($"Loading {packageId} from {fullSource}");
+                var sourceRepository = Repository.Factory.GetCoreV3(fullSource); // local path
                 try
                 {
                     resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>(ct);
                 }
-                catch { continue; }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Failed to load {packageId} from {fullSource}: {ex.Message}");
+                    continue;
+                }
             }
             else
             {
@@ -108,17 +137,28 @@ public class PluginLoader(string packagesFolder)
                 {
                     resource = await sourceRepository.GetResourceAsync<FindPackageByIdResource>(ct);
                 }
-                catch { continue; }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Failed to load {packageId} from {source}: {ex.Message}");
+                    continue;
+                }
             }
 
-            var versions = await resource.GetAllVersionsAsync(packageId, cache, logger, ct);
+            var versions = (await resource.GetAllVersionsAsync(packageId, cache, logger, ct))?.ToArray() ?? [];
             packageVersion = packageVersionRange.FindBestMatch(versions);
-            if (packageVersion == null) continue;
+            if (packageVersion == null)
+            {
+                logger.LogWarning($"No matching version found for {packageId} in {source}. Requested range: {packageVersionRange}, Versions found: {versions.StrJoin(",")}");
+                continue;
+            }
+
+            logger.LogInformation($"Found {packageId} {packageVersion} from {source}");
             if (await resource.CopyNupkgToStreamAsync(packageId, packageVersion, packageStream, cache, logger, ct))
             {
                 packageStream.Seek(0, SeekOrigin.Begin);
                 break;
             }
+            logger.LogError("Couldn't open nupkg stream");
     
             failedPackages.Add(packageId);
             return;
@@ -126,6 +166,7 @@ public class PluginLoader(string packagesFolder)
 
         if (packageVersion == null || packageStream.Length < 1)
         {
+            logger.LogError("Couldn't find package version or open nupkg stream");
             failedPackages.Add(packageId);
             return;
         }
@@ -149,7 +190,7 @@ public class PluginLoader(string packagesFolder)
                 .Where(pkg => pkg.Id != null); // framework references?
         foreach (var pkg in packageDependencies)
         {
-            await LoadPackageAsync(pkg.Id, pkg.VersionRange.ToNormalizedString(), processAssembly, packageSources, successPackages, failedPackages, ct);
+            await LoadPackage(pkg.Id, pkg.VersionRange.ToNormalizedString(), processAssembly, packageSources, successPackages, failedPackages, ct);
         }
 
         bool error = false;
@@ -177,8 +218,9 @@ public class PluginLoader(string packagesFolder)
                     var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(filePath);
                     processAssembly(assembly);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    logger.LogError($"Failed to load {packageId} from {filePath}: {ex.Message}");
                     error = true;
                     failedPackages.Add("-- " + Path.GetFileName(filePath));
                 }

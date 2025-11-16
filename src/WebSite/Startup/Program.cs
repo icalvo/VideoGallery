@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using VideoGallery.Interfaces;
 using VideoGallery.Library;
+using VideoGallery.Library.DefaultPlugin;
 using VideoGallery.Website.Auth;
 using VideoGallery.Website.Startup;
 using VideoGallery.Website.VideoGrid;
@@ -22,7 +23,10 @@ namespace VideoGallery.Website.Startup
         {
             var builder = WebApplication.CreateBuilder(args);
             var configuration = builder.Configuration;
-            if (!await PluginLoader.LoadExtensions(configuration, type => builder.Services.TryAddScoped(typeof(ITagValidation), type)))
+            var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<PluginLoader>>();
+            logger.LogInformation("Starting up...");
+            Environment.CurrentDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? Environment.CurrentDirectory;
+            if (!await PluginLoader.LoadExtensions(logger, configuration, type => builder.Services.TryAddScoped(typeof(ITagValidation), type)))
                 builder.Services.TryAddScoped<ITagValidation, DefaultTagValidation>();
 
             MiscStartup.SetupBuilder(builder);

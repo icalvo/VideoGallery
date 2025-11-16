@@ -1,6 +1,8 @@
-﻿namespace VideoGallery.Library;
+﻿using VideoGallery.Interfaces;
 
-public class Watch
+namespace VideoGallery.Library;
+
+public class Watch : IWatch
 {
     private static DateOnly UnknownDate => new(2020, 1, 1);
     public Watch(Guid videoId, DateOnly? date, string? description = null)

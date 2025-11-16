@@ -101,19 +101,26 @@ public class VideoContext : DbContext
             v.HasMany(x => x.Tags).WithMany();
             v.Navigation(x => x.Tags).AutoInclude();
         });
-        b.Entity<TagCategory>()
-            .HasMany<Tag>()
-            .WithOne()
-            .HasForeignKey(e => e.TagCategoryId)
-            .IsRequired();
+        _ = b.Entity<TagCategory>(c =>
+        {
+            c.HasKey(c => c.Code);
+            c.HasMany<Tag>()
+                .WithOne()
+                .HasForeignKey(e => e.TagCategoryId)
+                .IsRequired();
+        });
         b.Entity<NoVideoEvent>().HasKey(x => x.Date);
-
-        b.Entity<Watch>().Ignore(x => x.Date);
-        b.Entity<Watch>().HasKey(x => new { x.VideoId, x.StoreDate, x.IsDateUnknown });
-        b.Entity<Tag>().HasKey(x => x.Id);
-        b.Entity<Tag>().ToTable("Tag");
-        b.Entity<Tag>().Property(x => x.TagText).HasMaxLength(60);
-        b.Entity<TagCategory>().HasKey(c => c.Code);
+        _ = b.Entity<Watch>(w =>
+        {
+            w.Ignore(x => x.Date);
+            w.HasKey(x => new { x.VideoId, x.StoreDate, x.IsDateUnknown });
+        });
+        _ = b.Entity<Tag>(t =>
+        {
+            t.HasKey(x => x.Id);
+            t.ToTable("Tag");
+            t.Property(x => x.TagText).HasMaxLength(60);
+        });
         b.Entity<CustomQuery>().ComplexProperty(q => q.Spec, x => x.IsRequired());
     }
 }

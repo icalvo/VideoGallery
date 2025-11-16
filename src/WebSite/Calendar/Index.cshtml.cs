@@ -20,14 +20,14 @@ public class CalendarModel : PageModel
 
     public async Task OnGet(CancellationToken ct)
     {
-        var startDate = new DateOnly(2024, 4, 29);
+        var startDate = await _application.FirstEvent(ct) ?? new DateOnly(DateTime.Today.Year, 1, 1);
         YearlyStats = await _application.GetYearlyStats(startDate, ct);
         var vidsPerDate = (await _application.GetVideosPerDate(startDate, ct))
             .SelectMany(v => v.Watches.Select(w => new {w, v}))
             .WithoutNullsStr(x => x.w.Date, (x, d) => (x.w, x.v, d))
             .GroupBy(
                 x => x.d, 
-                x => new CalendarEvent(VideoEventTitle(x.v), VideoEventTooltip(x.v), x.v.Id, x.w.Description))
+                x => new CalendarEvent(_application.VideoEventTitle(x.v), _application.VideoEventTooltip(x.v), x.v.Id, x.w.Description))
             .ToDictionary(x => x.Key, x => x.ToList());
 
         var noVidEvents = await _application.GetNoVideoEvents(ct);
@@ -43,10 +43,6 @@ public class CalendarModel : PageModel
             .Select(week => week
                 .Select(d => new CalendarDay(vidsPerDate.GetValueOrDefault(d)?.ToArray() ?? [], d)).ToArray()).ToArray();
         return;
-
-        static string VideoEventTitle(VideoDto video) =>
-            $"{video.Actors} {video.Composition} {video.Duration.TotalMinutes:0}'";
-        static string VideoEventTooltip(VideoDto video) => video.Filename + "\n" + video.TagsRep;
     }
 
     public async Task<IActionResult> OnPostUpdateWatchDescription(Guid videoId, DateOnly date, string? description, CancellationToken ct)

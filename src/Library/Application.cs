@@ -241,6 +241,15 @@ public class Application : ITagValidation
     }
 
     public IEnumerable<(Func<IVideo, bool> cond, Func<IVideo, string[]> tags)> CalculatedTagRules => _tagValidation.CalculatedTagRules;
+    public string VideoEventTitle(IVideo video)
+    {
+        return _tagValidation.VideoEventTitle(video);
+    }
+
+    public string VideoEventTooltip(IVideo video)
+    {
+        return _tagValidation.VideoEventTooltip(video);
+    }
 
     public async Task<int> GetVideosCount(CancellationToken ct)
     {
@@ -330,5 +339,14 @@ public class Application : ITagValidation
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         return await context.NoVideoEvents.ToArrayAsync(ct);
+    }
+
+    public async Task<DateOnly?> FirstEvent(CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var d1 = (await context.NoVideoEvents.OrderBy(e => e.Date).FirstOrDefaultAsync(ct))?.Date;
+        var d2 = (await context.Watches.Where(e => !e.IsDateUnknown).OrderBy(e => e.StoreDate).FirstOrDefaultAsync(ct))?.StoreDate;
+        if (d1 is not null && d2 is not null) return d1 < d2 ? d1 : d2;
+        return d1 ?? d2;
     }
 }

@@ -5,6 +5,7 @@ namespace VideoGallery.Library;
 public class Video : IVideo
 {
     private readonly HashSet<Tag> _tags = [];
+    private readonly HashSet<Watch> _watches = [];
 
     public Video(
         Guid id,
@@ -24,23 +25,21 @@ public class Video : IVideo
     public string Filename { get; private set; }
     public TimeSpan Duration { get; set; }
     public int NumSequences { get; set; }
-    public string? Actors => Tags.FirstOrDefault(t => t.TagCategoryId == 'a')?.Name;
-    public string? Composition => Tags.FirstOrDefault(t => t.TagCategoryId == 'c')?.Name;
     public string TagsRep => Tags.Select(t => t.Name).OrderBy(x => x).StrJoin(", ");
-    public bool IsSolo => Composition?.Length == 3;
     public string? Comments { get; set; }
-    public DateOnly? LastViewDate => Watches.Count == 0 ? null : Watches.Max(w => w.Date);
-    public ICollection<Watch> Watches { get; set; } = new List<Watch>();
-    public IEnumerable<ITag> ITags => _tags;
+    public DateOnly? LastViewDate => !Watches.Any() ? null : Watches.Max(w => w.Date);
+    public IEnumerable<Watch> Watches => _watches;
+    IEnumerable<ITag> IVideo.Tags => _tags;
+    IEnumerable<IWatch> IVideo.Watches => _watches;
     public IEnumerable<Tag> Tags => _tags;
     public void Watch(DateOnly? now)
     {
-        Watches.Add(new Watch(Id, now));
+        _watches.Add(new Watch(Id, now));
     }
 
     public void Unwatch()
     {
-        Watches.Clear();
+        _watches.Clear();
     }
 
     public TimeSpan AverageSequenceDuration()
@@ -50,9 +49,9 @@ public class Video : IVideo
 
     public void RemoveWatch(DateOnly watchDate)
     {
-        Watches.Where(w => w.Date == watchDate)
+        _watches.Where(w => w.Date == watchDate)
             .ToList()
-            .ForEach(w => Watches.Remove(w));
+            .ForEach(w => _watches.Remove(w));
     }
 
     public void RemoveTags(params ITag[] tagsToRemove)

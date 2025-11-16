@@ -2,17 +2,12 @@
 
 public interface IVideo
 {
-    Guid Id { get; set; }
+    Guid Id { get; }
     string Filename { get; }
-    TimeSpan Duration { get; set; }
-    int NumSequences { get; set; }
-    string? Actors { get; }
-    string? Composition { get; }
-    string TagsRep { get; }
-    bool IsSolo { get; }
-    string? Comments { get; set; }
+    TimeSpan Duration { get; }
+    int NumSequences { get; }
+    string? Comments { get; }
     DateOnly? LastViewDate { get; }
-    // ICollection<Watch> Watches { get; set; }
-    IEnumerable<ITag> ITags { get; }
-    TimeSpan AverageSequenceDuration();
+    IEnumerable<IWatch> Watches { get; }
+    IEnumerable<ITag> Tags { get; }
 }

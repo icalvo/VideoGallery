@@ -8,6 +8,7 @@
     <PackageId>VideoGallery.Abstractions</PackageId>
     <Authors>Ignacio Calvo</Authors>
     <Description>Abstractions for the VideoGallery plugin system.</Description>
+    <AssemblyName>VideoGallery.Abstractions</AssemblyName>
   </PropertyGroup>
 
 </Project>

@@ -37,7 +37,7 @@ public class ShowDetails : ICommand
         AddRow("Filename", video.Filename);
         AddRow("Duration", video.Duration, null, x => x.ToString("mm':'ss"));
         AddRow("NumSequences", video.NumSequences);
-        AddRow("Actors", video.Actors);
+        AddRow("Actors", video.Tags.FirstOrDefault(t => t.TagCategoryId == 'a')?.Name);
         AddRow("Tags", video.TagsRep);
         AddRow("Comments", video.Comments);
         AddRow("ViewDate", video.LastViewDate);

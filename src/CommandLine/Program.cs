@@ -7,6 +7,7 @@ using VideoGallery.CommandLine;
 using VideoGallery.CommandLine.Listing;
 using VideoGallery.Interfaces;
 using VideoGallery.Library;
+using VideoGallery.Library.DefaultPlugin;
 
 var config = BuildConfiguration();
 
@@ -26,6 +27,7 @@ ICommand BuildMainCommand()
         config["Storage:Type"] ?? throw new Exception("Storage:Type must be defined"));
     ITagValidation tagValidation = new DefaultTagValidation();
     PluginLoader.LoadExtensions(
+        NullLogger<PluginLoader>.Instance,
         config, 
         type => tagValidation = (ITagValidation)(Activator.CreateInstance(type) ?? throw new Exception("Failed to create tag validation"))).Wait();
     var application = new Application(NullLogger<Application>.Instance, new SimpleDbContextFactory(cnxstr), tagValidation);

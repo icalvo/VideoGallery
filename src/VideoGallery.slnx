@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Abstractions/Abstractions.csproj" />
+  <Project Path="CommandLine/CommandLine.csproj" />
+  <Project Path="Library/Library.csproj" />
+  <Project Path="Tests/Tests.csproj" />
+  <Project Path="Website/Website.csproj" />
+</Solution>
