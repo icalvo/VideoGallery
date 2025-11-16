@@ -21,6 +21,7 @@ public class CalendarModel : PageModel
     public async Task OnGet(CancellationToken ct)
     {
         var startDate = await _application.FirstEvent(ct) ?? new DateOnly(DateTime.Today.Year, 1, 1);
+        startDate = new DateOnly(startDate.Year, startDate.Month, 1);
         YearlyStats = await _application.GetYearlyStats(startDate, ct);
         var vidsPerDate = (await _application.GetVideosPerDate(startDate, ct))
             .SelectMany(v => v.Watches.Select(w => new {w, v}))

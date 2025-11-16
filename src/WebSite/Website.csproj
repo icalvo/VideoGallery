@@ -18,6 +18,7 @@
     <PackageReference Include="Dropbox.Api" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="NReco.Logging.File" />
     <PackageReference Include="NuGet.Protocol" />
   </ItemGroup>
 

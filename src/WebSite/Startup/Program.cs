@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NReco.Logging.File;
 using VideoGallery.Interfaces;
-using VideoGallery.Library;
 using VideoGallery.Library.DefaultPlugin;
 using VideoGallery.Website.Auth;
 using VideoGallery.Website.Startup;
@@ -19,15 +19,23 @@ namespace VideoGallery.Website.Startup
 {
     public static class BuildTools
     {
-        public static async Task<WebApplication> BuildApp(params string[] args)
+        public static Task<WebApplication> BuildApp(params string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
-            var configuration = builder.Configuration;
-            var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<PluginLoader>>();
-            logger.LogInformation("Starting up...");
             Environment.CurrentDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location) ?? Environment.CurrentDirectory;
-            if (!await PluginLoader.LoadExtensions(logger, configuration, type => builder.Services.TryAddScoped(typeof(ITagValidation), type)))
-                builder.Services.TryAddScoped<ITagValidation, DefaultTagValidation>();
+            var builder = WebApplication.CreateBuilder(args);
+            builder.Logging.AddFile("app.log", o =>
+            {
+                o.FileSizeLimitBytes = 1_000_000;
+                o.MaxRollingFiles = 20;
+            });
+            var sc = new ServiceCollection();
+            sc.AddLogging(b => b.AddFile("startup.log", append: true));
+            var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Starting up...");
+            var extensionType = PluginLocator.TryFindPluginType() ?? typeof(DefaultTagValidation);
+
+            logger.LogInformation("Using tag validation extension: {ExtensionType}", extensionType.FullName);
+            builder.Services.TryAddScoped(typeof(ITagValidation), extensionType);
 
             MiscStartup.SetupBuilder(builder);
             AuthStartup.RegisterServices(builder, builder.Configuration);
@@ -35,8 +43,7 @@ namespace VideoGallery.Website.Startup
             global::VideoGallery.Website.Calendar.CalendarStartup.RegisterServices(builder.Services, builder.Configuration);
 
             var webApplication = builder.Build();
-            return webApplication;
+            return Task.FromResult(webApplication);
         }
-
     }
 }

@@ -9,6 +9,7 @@
     <Authors>Ignacio Calvo</Authors>
     <Description>Abstractions for the VideoGallery plugin system.</Description>
     <AssemblyName>VideoGallery.Abstractions</AssemblyName>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
 </Project>

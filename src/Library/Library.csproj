@@ -17,7 +17,6 @@
     <PackageReference Include="MockQueryable.Core" />
     <PackageReference Include="MockQueryable.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="NuGet.Protocol" />
   </ItemGroup>
 
   <ItemGroup>

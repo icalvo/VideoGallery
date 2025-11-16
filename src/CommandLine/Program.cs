@@ -25,11 +25,10 @@ ICommand BuildMainCommand()
     var options = new Options(
         config["Storage:Folder"] ?? throw new Exception("Storage:Folder must be defined"), 
         config["Storage:Type"] ?? throw new Exception("Storage:Type must be defined"));
-    ITagValidation tagValidation = new DefaultTagValidation();
-    PluginLoader.LoadExtensions(
-        NullLogger<PluginLoader>.Instance,
-        config, 
-        type => tagValidation = (ITagValidation)(Activator.CreateInstance(type) ?? throw new Exception("Failed to create tag validation"))).Wait();
+    var pluginType = PluginLocator.TryFindPluginType();
+    ITagValidation tagValidation =
+        pluginType == null ? new DefaultTagValidation() :
+        (ITagValidation)(Activator.CreateInstance(pluginType) ?? throw new Exception($"Failed to create plugin {pluginType.FullName}"));
     var application = new Application(NullLogger<Application>.Instance, new SimpleDbContextFactory(cnxstr), tagValidation);
     Verb[] generalVerbs =
     [
