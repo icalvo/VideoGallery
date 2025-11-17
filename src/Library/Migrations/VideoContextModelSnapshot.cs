@@ -160,19 +160,24 @@ namespace VideoGallery.Library.Migrations
 
             modelBuilder.Entity("VideoGallery.Library.Watch", b =>
                 {
-                    b.Property<Guid>("VideoId")
-                        .HasColumnType("uuid");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("generated_random_uuid()");
 
-                    b.Property<DateOnly>("StoreDate")
+                    b.Property<DateOnly?>("Date")
                         .HasColumnType("date");
-
-                    b.Property<bool>("IsDateUnknown")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.HasKey("VideoId", "StoreDate", "IsDateUnknown");
+                    b.Property<Guid>("VideoId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoId", "Date")
+                        .IsUnique();
 
                     b.ToTable("Watches");
                 });

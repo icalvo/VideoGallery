@@ -158,7 +158,7 @@ public class Application : ITagValidation
         _logger.LogInformation("Updating watch description for video [{Video}] on {Date}", videoId, date);
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var video = await context.Videos.FindAsync([videoId], ct) ?? throw new Exception("Video not found");
-        var watch = await context.Watches.FindAsync([videoId, date], ct) ?? throw new Exception("Watch not found");
+        var watch = await context.Watches.FirstAsync(w => w.VideoId == videoId && w.Date == date, ct);
         watch.Description = description;
         await RecalculateCalculatedTags(video, context, ct);
     }
@@ -331,7 +331,7 @@ public class Application : ITagValidation
     public async Task<VideoDto[]> GetVideosPerDate(DateOnly startDate, CancellationToken ct)
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
-        return (await context.Videos.Where(v => v.Watches.Any(w => w.StoreDate >= startDate)).ToArrayAsync(ct))
+        return (await context.Videos.Where(v => v.Watches.Any(w => w.Date >= startDate)).ToArrayAsync(ct))
             .Select(v => new VideoDto(v)).ToArray();
     }
 
@@ -345,7 +345,7 @@ public class Application : ITagValidation
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var d1 = (await context.NoVideoEvents.OrderBy(e => e.Date).FirstOrDefaultAsync(ct))?.Date;
-        var d2 = (await context.Watches.Where(e => !e.IsDateUnknown).OrderBy(e => e.StoreDate).FirstOrDefaultAsync(ct))?.StoreDate;
+        var d2 = (await context.Watches.Where(e => e.Date.HasValue).OrderBy(e => e.Date).FirstOrDefaultAsync(ct))?.Date;
         if (d1 is not null && d2 is not null) return d1 < d2 ? d1 : d2;
         return d1 ?? d2;
     }

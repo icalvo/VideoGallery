@@ -51,7 +51,7 @@ public class VideoContext : DbContext
                 : a.EndsWith('y')
                     ? DateOnly.FromDateTime(DateTime.Today).AddYears(-int.Parse(a[..^1]))
                     : throw new Exception("Invalid last view format");
-        return v => v.Watches.Max(w => w.StoreDate) >= date;
+        return v => v.Watches.Max(w => w.Date) >= date;
     }
     public IQueryable<CustomQueryExpression<Video>> CustomQueryExpressions => new[]
     {
@@ -69,7 +69,7 @@ public class VideoContext : DbContext
             nameof(Video.Comments) => q.Sort(querySpec.SortType, x => x.Comments),
             nameof(Video.Duration) => q.Sort(querySpec.SortType, x => x.Duration),
             nameof(Video.NumSequences) => q.Sort(querySpec.SortType, x => x.NumSequences),
-            nameof(Video.LastViewDate) => q.OrderBy(x => x.Watches.Count()).Sort(querySpec.SortType, x => x.Watches.Max(w => w.StoreDate)),
+            nameof(Video.LastViewDate) => q.OrderBy(x => x.Watches.Count()).Sort(querySpec.SortType, x => x.Watches.Max(w => w.Date)),
             _ => q
         };
 
@@ -112,8 +112,8 @@ public class VideoContext : DbContext
         b.Entity<NoVideoEvent>().HasKey(x => x.Date);
         _ = b.Entity<Watch>(w =>
         {
-            w.Ignore(x => x.Date);
-            w.HasKey(x => new { x.VideoId, x.StoreDate, x.IsDateUnknown });
+            w.Property(x => x.Id).HasDefaultValueSql("generated_random_uuid()");
+            w.HasIndex(x => new { x.VideoId, x.Date }).IsUnique();
         });
         _ = b.Entity<Tag>(t =>
         {

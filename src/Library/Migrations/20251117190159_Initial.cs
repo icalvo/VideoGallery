@@ -92,14 +92,14 @@ namespace VideoGallery.Library.Migrations
                 name: "Watches",
                 columns: table => new
                 {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false, defaultValueSql: "generated_random_uuid()"),
                     VideoId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StoreDate = table.Column<DateOnly>(type: "date", nullable: false),
-                    IsDateUnknown = table.Column<bool>(type: "boolean", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: true),
                     Description = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Watches", x => new { x.VideoId, x.StoreDate, x.IsDateUnknown });
+                    table.PrimaryKey("PK_Watches", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Watches_Videos_VideoId",
                         column: x => x.VideoId,
@@ -141,6 +141,12 @@ namespace VideoGallery.Library.Migrations
                 name: "IX_TagVideo_VideoId",
                 table: "TagVideo",
                 column: "VideoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Watches_VideoId_Date",
+                table: "Watches",
+                columns: new[] { "VideoId", "Date" },
+                unique: true);
         }
 
         /// <inheritdoc />
