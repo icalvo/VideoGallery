@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MockQueryable;
+using VideoGallery.Interfaces;
 using VideoGallery.Library.Parsing;
 
 namespace VideoGallery.Library;
@@ -69,7 +70,7 @@ public class VideoContext : DbContext
             nameof(Video.Comments) => q.Sort(querySpec.SortType, x => x.Comments),
             nameof(Video.Duration) => q.Sort(querySpec.SortType, x => x.Duration),
             nameof(Video.NumSequences) => q.Sort(querySpec.SortType, x => x.NumSequences),
-            nameof(Video.LastViewDate) => q.OrderBy(x => x.Watches.Count()).Sort(querySpec.SortType, x => x.Watches.Max(w => w.Date)),
+            nameof(VideoExtensions.LastViewDate) => q.OrderBy(x => x.Watches.Count()).Sort(querySpec.SortType, x => x.Watches.Max(w => w.Date)),
             _ => q
         };
 

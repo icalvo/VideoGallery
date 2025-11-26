@@ -85,7 +85,7 @@ public class Application : ITagValidation
             await context.Videos.FindAsync([videoId], ct)
             ?? throw new Exception("Video not found");
 
-        if (chosenVideo.LastViewDate == null)
+        if (chosenVideo.LastViewDate() == null)
             return;
 
         chosenVideo.Unwatch();

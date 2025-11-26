@@ -27,7 +27,6 @@ public class Video : IVideo
     public int NumSequences { get; set; }
     public string TagsRep => Tags.Select(t => t.Name).OrderBy(x => x).StrJoin(", ");
     public string? Comments { get; set; }
-    public DateOnly? LastViewDate => !Watches.Any() ? null : Watches.Max(w => w.Date);
     public IEnumerable<Watch> Watches => _watches;
     IEnumerable<ITag> IVideo.Tags => _tags;
     IEnumerable<IWatch> IVideo.Watches => _watches;

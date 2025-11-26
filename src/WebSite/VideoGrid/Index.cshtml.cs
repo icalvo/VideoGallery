@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using VideoGallery.Interfaces;
 using VideoGallery.Library;
 using VideoGallery.Library.Parsing;
 
@@ -13,7 +14,7 @@ internal class VideoGridModel : PageModel
 
     [BindProperty(SupportsGet = true)] public SortingType SortType { get; set; }
 
-    [BindProperty(SupportsGet = true)] public string? SortField { get; set; } = nameof(Video.LastViewDate);
+    [BindProperty(SupportsGet = true)] public string? SortField { get; set; } = nameof(VideoExtensions.LastViewDate);
 
     public VideoDto[] Videos { get; private set; } = [];
     public int TotalVideosCount { get; private set; }

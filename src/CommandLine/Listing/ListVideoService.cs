@@ -13,10 +13,10 @@ public static class ListVideoService
         query =
             settings.WatchedFilter switch
             {
-                WatchedVideoFilter.Pending => query.Where(v => v.LastViewDate == null),
-                WatchedVideoFilter.Watched => query.Where(v => v.LastViewDate != null),
+                WatchedVideoFilter.Pending => query.Where(v => !v.Watches.Any()),
+                WatchedVideoFilter.Watched => query.Where(v => v.Watches.Any()),
                 WatchedVideoFilter.All => query,
-                _ => query.Where(v => v.LastViewDate == null)
+                _ => query.Where(v => !v.Watches.Any())
             };
 
         if (settings.MinDuration != null)

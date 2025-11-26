@@ -16,7 +16,16 @@ public static class PluginLocator
                 var asm = ctx.LoadFromAssemblyPath(filePath);
                 if (asm.Location == thisTypeAssemblyLocation)
                     return false;
-                return asm.GetTypes()
+                Type[] types;
+                try
+                {
+                    types = asm.GetTypes();
+                }
+                catch
+                {
+                    types = [];
+                }
+                return types
                 .Any(t =>
                     t is { IsClass: true, IsPublic: true } &&
                     t.IsAssignableTo(typeof(ITagValidation)));

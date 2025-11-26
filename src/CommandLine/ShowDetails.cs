@@ -1,5 +1,6 @@
 ﻿using Spectre.Console;
 using Spectre.Console.Rendering;
+using VideoGallery.Interfaces;
 using VideoGallery.Library;
 
 namespace VideoGallery.CommandLine;
@@ -40,7 +41,7 @@ public class ShowDetails : ICommand
         AddRow("Actors", video.Tags.FirstOrDefault(t => t.TagCategoryId == 'a')?.Name);
         AddRow("Tags", video.TagsRep);
         AddRow("Comments", video.Comments);
-        AddRow("ViewDate", video.LastViewDate);
+        AddRow("ViewDate", video.LastViewDate());
 
         AddRow(
             "Average sequence duration",

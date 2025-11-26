@@ -7,7 +7,6 @@ public interface IVideo
     TimeSpan Duration { get; }
     int NumSequences { get; }
     string? Comments { get; }
-    DateOnly? LastViewDate { get; }
     IEnumerable<IWatch> Watches { get; }
     IEnumerable<ITag> Tags { get; }
 }

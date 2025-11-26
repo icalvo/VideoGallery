@@ -52,7 +52,7 @@ internal class VideoDetailModel : PageModel
         Duration = video.Duration < TimeSpan.FromHours(1) ? video.Duration.ToString(@"m\:ss") : video.Duration.ToString(@"h\:mm\:ss");
         NumSequences = video.NumSequences;
         Comments = video.Comments;
-        LastViewDate = video.LastViewDate;
+        LastViewDate = video.LastViewDate();
         Watches = video.Watches.Select(w => w.Date).ToArray();
         Tags = video.Tags.ToArray();
         AllTags = await _application.GetAllTagNames(ct);

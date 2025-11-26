@@ -1,6 +1,7 @@
 ﻿@page
 @using Library
 @using Microsoft.AspNetCore.Http.Extensions
+@using VideoGallery.Interfaces
 @using VideoGallery.Library.Parsing
 @using Website.Shared
 @model VideoGridModel
@@ -78,9 +79,9 @@
             <th scope="col">View date
                 <a asp-page="./Index"
                    asp-route-Search="@Model.Search"
-                   asp-route-SortType="@(Model.SortField == nameof(Video.LastViewDate) ? Model.SortType.Next() : Model.SortType)"
-                   asp-route-SortField="@nameof(Video.LastViewDate)">
-                   <partial name="_SortingTypeIcon" model="Model.SortField == nameof(Video.LastViewDate) ? Model.SortType : SortingType.None" />
+                   asp-route-SortType="@(Model.SortField == nameof(VideoExtensions.LastViewDate) ? Model.SortType.Next() : Model.SortType)"
+                   asp-route-SortField="@nameof(VideoExtensions.LastViewDate)">
+                   <partial name="_SortingTypeIcon" model="Model.SortField == nameof(VideoExtensions.LastViewDate) ? Model.SortType : SortingType.None" />
                 </a>
             </th>
             <th scope="col">Actions</th>
@@ -110,9 +111,9 @@
                 <td>
                     <form asp-page-handler="WatchVideo" method="post" asp-route-returnUrl="@Request.GetEncodedPathAndQuery()">
                         <div class="input-group">
-                            @if (video.LastViewDate != null)
+                            @if (video.LastViewDate() != null)
                             {
-                                <div class="input-group-text bg-success-subtle">@video.LastViewDate.Value.ToString("yyyy-MM-dd")</div>
+                                <div class="input-group-text bg-success-subtle">@video.LastViewDate()?.ToString("yyyy-MM-dd")</div>
                             }
                             else if (video.Watches.Any())
                             {
