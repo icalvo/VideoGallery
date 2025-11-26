@@ -57,8 +57,8 @@ public class DropboxVideoManager : IVideoManager
         var fileName = Path.GetFileName(filePath);
         var dropboxFilePath = _baseFolder + fileName;
         
-        var a = await client.Files.GetMetadataAsync(dropboxFilePath);
-        if (a is not null)
+        Console.WriteLine("Uploading to {0}", dropboxFilePath);
+        if (await client.ExistsAsync(dropboxFilePath))
         {
             Console.WriteLine("File already uploaded");
             return;
