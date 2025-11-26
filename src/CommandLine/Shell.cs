@@ -37,7 +37,8 @@ public class Shell : ICommand
             var subargs = Tokenizer.TokenizeCommandLineToStringArray(subCommand);
             try
             {
-                await cmd.Run(subargs);
+                var executedCommand = await cmd.RunAndReturnCommand(subargs);
+                if (executedCommand is Exit) return;
             }
             catch (CommandArgumentException ex)
             {

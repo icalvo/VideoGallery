@@ -15,7 +15,7 @@ public class ExecuteVerb : ICommand
 
     public IRenderable Description() => Text.Empty;
 
-    public async Task Run(string[] args)
+    public async Task<ICommand> RunAndReturnCommand(string[] args)
     {
         var verbName = args.ElementAtOrDefault(0);
         if (verbName == null)
@@ -27,6 +27,12 @@ public class ExecuteVerb : ICommand
 
         var command = verb.BuildCommand();
         await command.Run(args[1..]);
+        return command;
+    }
+    
+    public async Task Run(string[] args)
+    {
+        await RunAndReturnCommand(args);
     }
 
     public IRenderable Syntax() => Text.Empty;

@@ -40,13 +40,18 @@ ICommand BuildMainCommand()
         new("novideo", () => new RegisterNoVideoEvent(BuildContext())),
     ];
 
-    return
-        args.Length == 0
-            ? new Shell(BuildContext(), ContextualVerbs,
-                generalVerbs.Where(x => x.Name != "list"))
-            : new ExecuteVerb(generalVerbs);
+    if (args.Length == 0)
+    {
+        Console.WriteLine("Cnxstr: " + cnxstr);
+        Console.WriteLine("Options: " + options);
+        Console.WriteLine("Plugin: " + (pluginType?.FullName ?? "Default"));
+        return new Shell(BuildContext(), ShellVerbs,
+            generalVerbs.Where(x => x.Name != "list"));
+    }
 
-    Verb[] ContextualVerbs(ShellContext sc) =>
+    return new ExecuteVerb(generalVerbs);
+
+    Verb[] ShellVerbs(ShellContext sc) =>
     [
         new("list", () => new Filter(BuildContext(), sc)),
         new("details", () => new ShowDetails(BuildContext(), sc)),
@@ -54,6 +59,7 @@ ICommand BuildMainCommand()
         new("update", () => new UpdateVideo(BuildContext(), sc)),
         new("watch", () => new WatchVideo(BuildContext(), sc)),
         new("unwatch", () => new UnwatchVideo(BuildContext(), sc)),
+        new("exit", () => new Exit())
     ];
 
     VideoContext BuildContext() =>
