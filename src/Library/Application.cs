@@ -49,6 +49,7 @@ public class Application : ITagValidation
             ?? throw new Exception("Video not found");
         chosenVideo.NumSequences = numsequences;
         await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task WatchVideo(Guid videoId, DateOnly? newDate, CancellationToken ct)
@@ -63,6 +64,7 @@ public class Application : ITagValidation
 
         chosenVideo.Watch(watchedDate);
         await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteWatch(Guid videoId, DateOnly watchDate, CancellationToken ct)
@@ -75,6 +77,7 @@ public class Application : ITagValidation
 
         video.RemoveWatch(watchDate);
         await RecalculateCalculatedTags(video, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task UnwatchVideo(Guid videoId, CancellationToken ct)
@@ -90,6 +93,7 @@ public class Application : ITagValidation
 
         chosenVideo.Unwatch();
         await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task DeleteVideo(Guid videoId, CancellationToken ct)
@@ -102,6 +106,18 @@ public class Application : ITagValidation
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task<string?> AddVideo(Video newVideo, string[] tagNames, CancellationToken ct)
+    { 
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        context.Videos.Add(newVideo);
+        var (tags, error) = await AddTags(tagNames, context, ct);
+        if (error is not null) return error;
+        newVideo.AddTags(tags);
+        error = await RecalculateCalculatedTags(newVideo, context, ct);
+        await context.SaveChangesAsync(ct);
+        return error;
+    }
+
     public async Task<string?> AddTagsToVideo(Guid videoId, string[] tagNames, CancellationToken ct)
     {
         _logger.LogInformation("Adding tags [{Tags}] from video [{Video}]", tagNames, videoId);
@@ -110,7 +126,9 @@ public class Application : ITagValidation
         var (tags, error) = await AddTags(tagNames, context, ct);
         if (error is not null) return error;
         video.AddTags(tags);
-        return await RecalculateCalculatedTags(video, context, ct);
+        var error2 = await RecalculateCalculatedTags(video, context, ct);
+        await context.SaveChangesAsync(ct);
+        return error2;
     }
 
     public async Task<string?> DeleteTagsFromVideo(Guid videoId, Guid tagId, CancellationToken ct)
@@ -119,7 +137,9 @@ public class Application : ITagValidation
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var video = await context.Videos.FindAsync([videoId], ct) ?? throw new Exception("Video not found");
         video.RemoveTags(video.Tags.Single(x => x.Id == tagId));
-        return await RecalculateCalculatedTags(video, context, ct);
+        var error = await RecalculateCalculatedTags(video, context, ct);
+        await context.SaveChangesAsync(ct);
+        return error;
     }
 
     private static async Task<(Tag[] tags, string? error)> AddTags(
@@ -151,6 +171,7 @@ public class Application : ITagValidation
         chosenVideo.NumSequences = numSequences;
         chosenVideo.Comments = comments;
         await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task UpdateWatchDescription(Guid videoId, DateOnly date, string? description, CancellationToken ct)
@@ -161,6 +182,7 @@ public class Application : ITagValidation
         var watch = await context.Watches.FirstAsync(w => w.VideoId == videoId && w.Date == date, ct);
         watch.Description = description;
         await RecalculateCalculatedTags(video, context, ct);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task<VideoDto> GetVideoById(Guid id, CancellationToken ct)
@@ -183,13 +205,6 @@ public class Application : ITagValidation
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         return await context.Queries.ToArrayAsync(ct);
-    }
-
-    public async Task AddVideo(Video newVideo, CancellationToken ct)
-    { 
-        await using var context = await _dbFactory.CreateDbContextAsync(ct);
-        context.Videos.Add(newVideo);
-        await RecalculateCalculatedTags(newVideo, context, ct);
     }
 
     public async Task RecalculateCalculatedTags(CancellationToken ct)
@@ -229,7 +244,6 @@ public class Application : ITagValidation
         if (error is null)
         {
             chosenVideo.AddTags(calculatedTags.ToArray());
-            await context.SaveChangesAsync(ct);
         }
 
         return error;

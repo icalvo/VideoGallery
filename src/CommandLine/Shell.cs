@@ -1,4 +1,6 @@
-﻿using Spectre.Console;
+﻿using Icm;
+using Icm.Commands;
+using Spectre.Console;
 using Spectre.Console.Rendering;
 using VideoGallery.CommandLine.Listing;
 using VideoGallery.Library;
@@ -27,10 +29,12 @@ public class Shell : ICommand
     {
         var shellContext = await BuildShellContext();
         var shellVerbs = _shellVerbsBuilder(shellContext);
-        var cmd = new ExecuteVerb(_generalVerbs.Concat(shellVerbs));
+        var allVerbs = _generalVerbs.Concat(shellVerbs).ToArray();
+        var cmd = new ExecuteVerb(allVerbs);
         while (true)
         {
-            var subCommand = shellContext.Prompt();
+            var completions = allVerbs.Select(v => v.Name).ToArray();
+            var subCommand = shellContext.Prompt(completions);
             
             if (string.IsNullOrWhiteSpace(subCommand)) return;
             

@@ -57,9 +57,15 @@ public class AddVideo : ICommand
         var newVideo = new Video(id: Guid.NewGuid(), filename: Path.GetFileName(fd.FilePath), duration: duration,
             numSequences: AskInteger("# of sequences:"), comments: AskText("[[Optional]] Comments:"));
         var allTags = await _application.GetAllTagNames(CancellationToken.None);
-        var tags = AskTags(allTags.Select(tn => new TagProposal(tn)).ToArray()).Select(t => t.Name).ToArray();
-        await _application.AddVideo(newVideo, CancellationToken.None);
-        await _application.AddTagsToVideo(newVideo.Id, tags, CancellationToken.None);
+        var tagProposals = allTags.Select(tn => new TagProposal(tn)).ToArray();
+        var tags = AskTags(tagProposals).Select(t => t.Name).ToArray();
+        var error = await _application.AddVideo(newVideo, tags, CancellationToken.None);
+        if (error is not null)
+        {
+            AnsiConsole.MarkupLine($"[red]{error}[/]");
+            return;
+        }
+        AnsiConsole.WriteLine($"Video added to DB with id {newVideo.Id}");
     }
 
     private record FileDownload : IDisposable
@@ -96,14 +102,23 @@ public class AddVideo : ICommand
         return new Markup("[yellow]URL[/]");
     }
 
+    private readonly CustomPrompt _ip = new();
     private TagProposal[] AskTags(TagProposal[] allTags)
     {
         string[] tagNames = [];
-        AnsiConsole.MarkupLineInterpolated($"[yellow]{string.Join(", ", allTags.Select(t => t.Name).Order())}[/]");
+        var forPrint = allTags.GroupBy(x => x.TagCategoryId)
+            .OrderBy(x => x.Key)
+            .Index()
+            .Select(x => (x.Index % 2 == 0 ? "yellow" : "green", x.Item.Select(t => t.Name).Order()));
+        foreach (var (color, tags) in forPrint)
+        {
+            AnsiConsole.MarkupLineInterpolated($"[{color}]{string.Join(", ", tags)}[/]");
+        }
+        var allTagNames = allTags.Select(t => t.Name).ToArray();
         TagProposal[] superTags;
         while (true)
         {
-            var tagInput = AskRequiredText("Tag list, comma-separated. Remove with -tag:");
+            var tagInput = _ip.Prompt("Tag list, comma-separated. Remove with -tag", allTagNames);
             var tagInputArray =
                 tagInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var removals = tagInputArray.Where(ti => ti.StartsWith('-')).Select(ti => ti[1..]).ToArray();
