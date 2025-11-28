@@ -8,6 +8,7 @@
     <PackageVersion Include="CliWrap" Version="3.9.0" />
     <PackageVersion Include="Dropbox.Api" Version="7.0.0" />
     <PackageVersion Include="Duende.AccessTokenManagement.OpenIdConnect" Version="3.2.0" />
+    <PackageVersion Include="Ic.InteractivePrompt" Version="1.0.0-beta01" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.QuickGrid.EntityFrameworkAdapter" Version="9.0.3" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.11" />
