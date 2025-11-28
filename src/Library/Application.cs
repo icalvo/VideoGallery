@@ -363,4 +363,13 @@ public class Application : ITagValidation
         if (d1 is not null && d2 is not null) return d1 < d2 ? d1 : d2;
         return d1 ?? d2;
     }
+
+    public async Task<TagDetail[]> GetTags(CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var x = context.Tags.Select(t => new TagDetail(new TagDto(t, t.Category!), t.Category!, t.Videos.Count));
+        return await x.ToArrayAsync(ct);
+    }
 }
+
+public record TagDetail(TagDto Tag, TagCategory Category, int VideosCount);

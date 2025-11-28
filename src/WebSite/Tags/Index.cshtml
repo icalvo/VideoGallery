@@ -1,0 +1,28 @@
+﻿@page
+@model TagsModel
+@{
+    ViewData["Title"] = "Tags";
+}
+<div>
+    <form>
+        <input type="text" name="tagName" />
+        <button type="submit">Create category</button>
+    </form>
+    @foreach (var categoryGroup in Model.TagDetails.GroupBy(t => t.Category.Code))
+    {
+        <h1>@categoryGroup.First().Category.Name <form><button type="submit">X</button></form></h1>
+        <form>
+            <input type="text" name="tagName" />
+            <button type="submit">Create tag</button>
+        </form>
+        <div class="d-flex flex-row justify-content-center flex-wrap gap-3">
+            @foreach (var tag in categoryGroup.OrderBy(t => t.Tag.Name))
+            {
+                <div class="block rounded-lg bg-white shadow-lg dark:bg-neutral-700 text-center">
+                    <h2 style="color: @tag.Category.ForegroundColor.CssName; background-color: @tag.Category.BackgroundColor.CssName">@tag.Tag.Name <form><button type="submit">X</button></form></h2>
+                    <p class="fw-bold">Videos: <a asp-page="/VideoGrid/Index" asp-route-search="@tag.Tag.Name">@tag.VideosCount videos</a></p>
+                </div>
+            }
+        </div>
+    }
+</div>

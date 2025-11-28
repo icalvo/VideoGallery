@@ -99,14 +99,18 @@ public class VideoContext : DbContext
             v.Property(x => x.NumSequences).HasComment("# of sequences");
             v.Property(x => x.Comments).HasComment("Comments");
             v.Navigation(x => x.Watches).AutoInclude();
-            v.HasMany(x => x.Tags).WithMany();
+            v.HasMany(x => x.Tags)
+                .WithMany(x => x.Videos)
+                .UsingEntity(
+                    r => r.HasOne(typeof(Tag)).WithMany().HasForeignKey("TagsId"),
+                    l => l.HasOne(typeof(Video)).WithMany().HasForeignKey("VideoId"));
             v.Navigation(x => x.Tags).AutoInclude();
         });
         _ = b.Entity<TagCategory>(c =>
         {
             c.HasKey(c => c.Code);
-            c.HasMany<Tag>()
-                .WithOne()
+            c.HasMany<Tag>(t => t.Tags)
+                .WithOne(t => t.Category)
                 .HasForeignKey(e => e.TagCategoryId)
                 .IsRequired();
         });

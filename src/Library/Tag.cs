@@ -52,6 +52,9 @@ public partial class Tag : ITag
         set => SetStuff(TagCategoryId, value);
     }
 
+    public ICollection<Video> Videos { get; } = new List<Video>();
+    public TagCategory? Category { get; set; }
+
     [MemberNotNull(nameof(_tagCategoryId), nameof(_tagText), nameof(_name))]
     private void SetStuff(char cat, string text)
     {

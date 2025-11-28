@@ -4,7 +4,7 @@ namespace VideoGallery.Library;
 
 public record TagDto : ITag
 {
-    public TagDto(Tag t, Func<char, TagCategory> catColors)
+    public TagDto(Tag t, TagCategory category)
     {
         Id = t.Id;
         Name = t.Name;
@@ -12,8 +12,11 @@ public record TagDto : ITag
         Text = t.Name;
         TagCategoryId = t.TagCategoryId;
         TagText = t.TagText;
-        ForegroundColor = catColors(t.TagCategoryId).ForegroundColor;
-        BackgroundColor = catColors(t.TagCategoryId).BackgroundColor;
+        ForegroundColor = category.ForegroundColor;
+        BackgroundColor = category.BackgroundColor;
+    }
+    public TagDto(Tag t, Func<char, TagCategory> catColors) : this(t, catColors(t.TagCategoryId))
+    {
     }
     public Guid Id { get; init; }
     public string Name { get; init; }
