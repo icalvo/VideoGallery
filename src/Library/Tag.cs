@@ -23,6 +23,13 @@ public partial class Tag : ITag
         Name = name;
     }
 
+    public Tag(Guid tagId)
+    {
+        Id = tagId;
+        _name = "";
+        _tagText = "";
+    }
+
     public static string Compose(char cat, string text) => $"{cat}:{text}";
     public static bool IsValid(string name) => TagRegex().IsMatch(name);
 

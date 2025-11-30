@@ -370,6 +370,39 @@ public class Application : ITagValidation
         var x = context.Tags.Select(t => new TagDetail(new TagDto(t, t.Category!), t.Category!, t.Videos.Count));
         return await x.ToArrayAsync(ct);
     }
+
+    public async Task DeleteTag(Guid tagId, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var tag = new Tag(tagId);
+        context.Tags.Remove(tag);
+        await context.SaveChangesAsync(ct);
+    }
+    
+    public async Task DeleteCategory(char categoryId, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var category = new TagCategory("", categoryId, new TagCategoryColor(""), new TagCategoryColor(""));
+        context.Categories.Remove(category);
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task CreateCategory(char categoryId, string name, string foregroundColor, string backgroundColor, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var category = new TagCategory(name, categoryId, new TagCategoryColor(foregroundColor), new TagCategoryColor(backgroundColor));
+        context.Categories.Remove(category);
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task RenameTag(Guid tagId, string newTagText, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var tag = await context.Tags.FindAsync([tagId], ct);
+        if (tag is null) return;
+        tag.TagText = newTagText;
+        await context.SaveChangesAsync(ct);
+    }
 }
 
 public record TagDetail(TagDto Tag, TagCategory Category, int VideosCount);
