@@ -184,6 +184,27 @@ public class Application : ITagValidation
         await RecalculateCalculatedTags(video, context, ct);
         await context.SaveChangesAsync(ct);
     }
+    public async Task SetWatchDayComment(DateOnly date, string? comment, CancellationToken ct)
+    {
+        _logger.LogInformation("Updating watch day comment for {Date}", date);
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var watchDayComment = await context.WatchDayComments.FindAsync([date], ct);
+        if (watchDayComment == null)
+        {
+            if (string.IsNullOrWhiteSpace(comment)) return;
+            watchDayComment = new WatchDayComment(date, comment);
+            context.WatchDayComments.Add(watchDayComment);
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(comment)) 
+                context.WatchDayComments.Remove(watchDayComment);
+            else
+                watchDayComment.Comment = comment;
+        } 
+
+        await context.SaveChangesAsync(ct);
+    }
 
     public async Task<VideoDto> GetVideoById(Guid id, CancellationToken ct)
     {
@@ -402,6 +423,12 @@ public class Application : ITagValidation
         if (tag is null) return;
         tag.TagText = newTagText;
         await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<WatchDayComment[]> GetWatchDayComments(CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        return await context.WatchDayComments.ToArrayAsync(ct);
     }
 }
 

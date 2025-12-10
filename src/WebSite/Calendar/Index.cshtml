@@ -321,7 +321,14 @@
                     foreach (var day in week)
                     {
                         <div class="calendar-day @(day.Date.Month % 2 == 0 ? "even" : "odd")">
-                            <div class="day-number">@day.Date.Day</div>
+                            <div 
+                                class="day-number"
+                                data-date="@day.Date.ToString("yyyy-MM-dd")" 
+                                data-comment="@day.WatchDayComment"
+                            >
+                                @day.Date.Day
+                                <span class="note-icon" data-icon onclick="openCommentModal(this)" title="Edit watch day comment">@(day.WatchDayComment == null ? "⬜" : "📝")</span>
+                            </div>
                             <div class="events">
                                 @foreach (var ev in day.Events)
                                 {
@@ -333,7 +340,7 @@
                                              data-watch-date="@day.Date.ToString("yyyy-MM-dd")" 
                                              data-description="@ev.Description">
                                             <a asp-page="/VideoDetail/Index" asp-route-id="@ev.Id">@ev.Title</a>
-                                            <span class="note-icon" onclick="openDescriptionModal(this)" title="Edit watch notes">📝</span>
+                                            <span class="note-icon" data-icon onclick="openDescriptionModal(this)" title="Edit watch notes">@(ev.Description == null ? "⬜" : "📝")</span>
                                         </div>
                                     }
                                     else
@@ -350,6 +357,29 @@
     </div>
 </div>
 
+<!-- Comment Modal -->
+<div id="commentModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Watch day notes</h3>
+            <span class="close" onclick="closeCommentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="commentForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalCommentDate" name="date" />
+                <div class="form-group">
+                    <label for="modalComment" class="sr-only">Comment:</label>
+                    <textarea id="modalComment" name="comment" rows="4" placeholder="Enter comment for this watch day..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeCommentModal()">Cancel</button>
+                    <button type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <!-- Description Modal -->
 <div id="descriptionModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -377,7 +407,17 @@
 
 <script>
     window.scrollTo(0, document.body.scrollHeight);
-    
+
+    function openCommentModal(noteIcon) {
+        const eventElement = noteIcon.parentElement;
+        const date = eventElement.getAttribute('data-date');
+        const comment = eventElement.getAttribute('data-comment') || '';
+
+        document.getElementById('modalCommentDate').value = date;
+        document.getElementById('modalComment').value = comment;
+
+        document.getElementById('commentModal').style.display = 'flex';
+    }
     function openDescriptionModal(noteIcon) {
         const eventElement = noteIcon.parentElement;
         const videoId = eventElement.getAttribute('data-video-id');
@@ -394,15 +434,57 @@
     function closeDescriptionModal() {
         document.getElementById('descriptionModal').style.display = 'none';
     }
-    
+
+    function closeCommentModal() {
+        document.getElementById('commentModal').style.display = 'none';
+    }
     // Close modal when clicking outside of it
     window.onclick = function(event) {
         const modal = document.getElementById('descriptionModal');
         if (event.target === modal) {
             closeDescriptionModal();
         }
+        const cmodal = document.getElementById('commentModal');
+        if (event.target === cmodal) {
+            closeCommentModal();
+        }
     }
-    
+
+    // Handle form submission
+    document.getElementById('commentForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const date = formData.get('date');
+        const comment = formData.get('comment');
+
+        try {
+            const response = await fetch('?handler=UpdateWatchDayComment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `date=${encodeURIComponent(date)}&comment=${encodeURIComponent(comment)}`
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update the data attribute on the event element
+                const eventElement = document.querySelector(`[data-date="${date}"]`);
+                if (eventElement) {
+                    eventElement.setAttribute('data-comment', comment);
+                    eventElement.querySelector('[data-icon]').innerHTML = comment ? '📝' : '⬜';
+                }
+                closeCommentModal();
+            } else {
+                alert('Error saving comment: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error saving comment: ' + error.message);
+        }
+    });
     // Handle form submission
     document.getElementById('descriptionForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -429,6 +511,7 @@
                 const eventElement = document.querySelector(`[data-video-id="${videoId}"][data-watch-date="${date}"]`);
                 if (eventElement) {
                     eventElement.setAttribute('data-description', description);
+                    eventElement.querySelector('[data-icon]').innerHTML = description ? '📝' : '⬜';
                 }
                 closeDescriptionModal();
             } else {

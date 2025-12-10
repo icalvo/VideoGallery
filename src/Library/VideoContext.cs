@@ -20,6 +20,7 @@ public class VideoContext : DbContext
     public DbSet<Tag> Tags { get; set; }
     public DbSet<TagCategory> Categories { get; set; }
     public DbSet<CustomQuery> Queries { get; set; }
+    public DbSet<WatchDayComment> WatchDayComments { get; set; }
     
     private static readonly string[] DurationFormats = ["%m", "m':'ss"];
 
@@ -115,6 +116,7 @@ public class VideoContext : DbContext
                 .IsRequired();
         });
         b.Entity<NoVideoEvent>().HasKey(x => x.Date);
+        b.Entity<WatchDayComment>().HasKey(x => x.Date);
         _ = b.Entity<Watch>(w =>
         {
             w.Property(x => x.Id).HasDefaultValueSql("generated_random_uuid()");

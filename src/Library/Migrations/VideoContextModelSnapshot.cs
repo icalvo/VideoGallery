@@ -18,7 +18,7 @@ namespace VideoGallery.Library.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -48,7 +48,7 @@ namespace VideoGallery.Library.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.ComplexProperty<Dictionary<string, object>>("Spec", "VideoGallery.Library.CustomQuery.Spec#QuerySpec", b1 =>
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Spec", "VideoGallery.Library.CustomQuery.Spec#QuerySpec", b1 =>
                         {
                             b1.IsRequired();
 
@@ -182,6 +182,20 @@ namespace VideoGallery.Library.Migrations
                     b.ToTable("Watches");
                 });
 
+            modelBuilder.Entity("VideoGallery.Library.WatchDayComment", b =>
+                {
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Date");
+
+                    b.ToTable("WatchDayComments");
+                });
+
             modelBuilder.Entity("TagVideo", b =>
                 {
                     b.HasOne("VideoGallery.Library.Tag", null)
@@ -199,11 +213,13 @@ namespace VideoGallery.Library.Migrations
 
             modelBuilder.Entity("VideoGallery.Library.Tag", b =>
                 {
-                    b.HasOne("VideoGallery.Library.TagCategory", null)
-                        .WithMany()
+                    b.HasOne("VideoGallery.Library.TagCategory", "Category")
+                        .WithMany("Tags")
                         .HasForeignKey("TagCategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("VideoGallery.Library.Watch", b =>
@@ -213,6 +229,11 @@ namespace VideoGallery.Library.Migrations
                         .HasForeignKey("VideoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("VideoGallery.Library.TagCategory", b =>
+                {
+                    b.Navigation("Tags");
                 });
 
             modelBuilder.Entity("VideoGallery.Library.Video", b =>

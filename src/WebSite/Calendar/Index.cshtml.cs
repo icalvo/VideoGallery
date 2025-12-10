@@ -5,7 +5,7 @@ using VideoGallery.Library;
 namespace VideoGallery.Website.Calendar;
 
 public record CalendarEvent(string Title, string Tooltip, Guid? Id = null, string? Description = null);
-public record CalendarDay(CalendarEvent[] Events, DateOnly Date);
+public record CalendarDay(CalendarEvent[] Events, DateOnly Date, string? WatchDayComment);
 public class CalendarModel : PageModel
 {
     private readonly Application _application;
@@ -30,6 +30,8 @@ public class CalendarModel : PageModel
                 x => x.d, 
                 x => new CalendarEvent(_application.VideoEventTitle(x.v), _application.VideoEventTooltip(x.v), x.v.Id, x.w.Description))
             .ToDictionary(x => x.Key, x => x.ToList());
+        var comments = await _application.GetWatchDayComments(ct);
+        var commentsPerDate = comments.ToDictionary(x => x.Date, x => x.Comment);
 
         var noVidEvents = await _application.GetNoVideoEvents(ct);
         foreach (var noVideoEvent in noVidEvents)
@@ -42,8 +44,21 @@ public class CalendarModel : PageModel
         Weeks = Enumerate(startDate, DateOnly.FromDateTime(DateTime.Today))
             .Chunk(7)
             .Select(week => week
-                .Select(d => new CalendarDay(vidsPerDate.GetValueOrDefault(d)?.ToArray() ?? [], d)).ToArray()).ToArray();
+                .Select(d => new CalendarDay(vidsPerDate.GetValueOrDefault(d)?.ToArray() ?? [], d, commentsPerDate.GetValueOrDefault(d))).ToArray()).ToArray();
         return;
+    }
+    
+    public async Task<IActionResult> OnPostUpdateWatchDayComment(DateOnly date, string? comment, CancellationToken ct)
+    {
+        try
+        {
+            await _application.SetWatchDayComment(date, comment, ct);
+            return new JsonResult(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, error = ex.Message });
+        }
     }
 
     public async Task<IActionResult> OnPostUpdateWatchDescription(Guid videoId, DateOnly date, string? description, CancellationToken ct)
