@@ -359,6 +359,7 @@ public class Application : ITagValidation
                                                         from all_dates
                                                         group by date_part('year', "Date")) counts
                                                   on years.dyear = counts.dyear
+                                                  order by counts.dyear::int
                                                   """, startDate).ToArrayAsync(ct);
         return globalStats.Concat(yearlyStats).ToArray();
     }
