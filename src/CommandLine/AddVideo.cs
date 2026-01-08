@@ -31,9 +31,10 @@ public class AddVideo : ICommand
 
         using var fd = await DownloadVideoFile(urlOrFilePath);
         AnsiConsole.MarkupLineInterpolated($"[yellow]File to be imported:[/] {fd.FilePath}");
+        var fileName = Path.GetFileName(fd.FilePath);
         if ((await _application.GetVideos(
                 new QuerySpec(
-                    "\"" + Path.GetFileName(fd.FilePath).Replace("\"", "\\\"") + "\""),
+                    "\"" + fileName.Replace("\"", "\\\"") + "\""),
                 CancellationToken.None)).Length != 0)
         {
             AnsiConsole.MarkupLine("[red]You already have this video in the DB![/]");
@@ -51,10 +52,10 @@ public class AddVideo : ICommand
         await videoManager.Upload(fd.FilePath);
         AnsiConsole.WriteLine("Uploaded to cloud");
 
-        TimeSpan duration = await videoManager.GetDuration(fd.FilePath);
+        TimeSpan duration = await videoManager.GetDuration(fileName);
 
         AnsiConsole.WriteLine($"Duration: {duration:g}");
-        var newVideo = new Video(id: Guid.NewGuid(), filename: Path.GetFileName(fd.FilePath), duration: duration,
+        var newVideo = new Video(id: Guid.NewGuid(), filename: fileName, duration: duration,
             numSequences: AskInteger("# of sequences:"), comments: AskText("[[Optional]] Comments:"));
         var allTags = await _application.GetAllTagNames(CancellationToken.None);
         var tagProposals = allTags.Select(tn => new TagProposal(tn)).ToArray();

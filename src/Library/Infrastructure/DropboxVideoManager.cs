@@ -21,11 +21,10 @@ public class DropboxVideoManager : IVideoManager
         _client ??= await _clientFactory.Build(ct);
         return _client;
     }
-    public async Task<TimeSpan> GetDuration(string filePath, CancellationToken ct = default)
+    public async Task<TimeSpan> GetDuration(string video, CancellationToken ct = default)
     {
-        var fileName = Path.GetFileName(filePath);
         var client = await ClientInstance(ct);
-        var dropboxFilePath = _baseFolder + fileName;
+        var dropboxFilePath = _baseFolder + video;
         var a = await client.Files.GetMetadataAsync(dropboxFilePath, includeMediaInfo: true);
         var duration = a.AsFile.MediaInfo.AsMetadata.Value.AsVideo.Duration;
         if (duration == null) throw new Exception("No duration");

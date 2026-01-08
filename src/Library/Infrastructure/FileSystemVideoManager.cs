@@ -23,7 +23,9 @@ public class FileSystemVideoManager : IVideoManager
     }
 
     public async Task<TimeSpan> GetDuration(string filePath, CancellationToken ct = default)
+    public async Task<TimeSpan> GetDuration(string video, CancellationToken ct = default)
     {
+        var filePath = Path.Combine(_videosFolder, $"{video}");
         var cmd = Cli.Wrap("ffprobe").WithArguments(args =>
             args.Add("-v").Add("error").Add("-show_entries").Add("format=duration").Add("-sexagesimal").Add("-of")
                 .Add("default=noprint_wrappers=1:nokey=1").Add(filePath));
