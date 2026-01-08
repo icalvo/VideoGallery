@@ -22,7 +22,11 @@ public class FileSystemVideoManager : IVideoManager
         return Task.CompletedTask;
     }
 
-    public async Task<TimeSpan> GetDuration(string filePath, CancellationToken ct = default)
+    public Task<bool> Exists(string video, CancellationToken ct = default)
+    {
+        return Task.FromResult(File.Exists(Path.Combine(_videosFolder, video)));
+    }
+
     public async Task<TimeSpan> GetDuration(string video, CancellationToken ct = default)
     {
         var filePath = Path.Combine(_videosFolder, $"{video}");

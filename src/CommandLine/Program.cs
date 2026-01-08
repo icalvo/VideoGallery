@@ -33,6 +33,7 @@ ICommand BuildMainCommand()
     Verb[] generalVerbs =
     [
         new("add", () => new AddVideo(options, application)),
+        new("register", () => new RegisterVideo(options, application)),
         new("list", () => new ListVideos(BuildContext())),
         new("init", () => new InitDatabase(BuildContext())),
         new("calctags", () => new RecalculateCalculatedTags(application)),

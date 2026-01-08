@@ -30,7 +30,23 @@ public class DropboxVideoManager : IVideoManager
         if (duration == null) throw new Exception("No duration");
         return TimeSpan.FromMilliseconds(duration.Value);
     }
-    
+
+    public async Task<bool> Exists(string video, CancellationToken ct = default)
+    {
+        var client = await ClientInstance(ct);
+        var dropboxFilePath = _baseFolder + video;
+        try
+        {
+            await client.Files.GetMetadataAsync(dropboxFilePath);
+            return true;
+        }
+        catch (ApiException<GetMetadataError> ex)
+        {
+            if (ex.Message == "path/not_found/...") return false;
+            throw;
+        }
+    }
+
     public async Task<string> GetVideoSharedLink(string video, CancellationToken ct = default)
     {
         var client = await ClientInstance(ct);
