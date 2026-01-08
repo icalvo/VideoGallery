@@ -328,7 +328,7 @@ public class Application : ITagValidation
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var globalStats = await context.Database.SqlQueryRaw<YearlyStat>("""
                                                                             with all_dates as 
-                                                                                (select "StoreDate" as "Date" from "Watches" where "StoreDate" >= {0} union select "Date" from "NoVideoEvents")
+                                                                                (select "Date" from "Watches" where "Date" >= {0} union select "Date" from "NoVideoEvents")
                                                                             select 
                                                                                    null "year",
                                                                                    count("Date") count,
@@ -339,7 +339,7 @@ public class Application : ITagValidation
                                                                             """, startDate).ToArrayAsync(ct);
         var yearlyStats = await context.Database.SqlQueryRaw<YearlyStat>("""
                                                   with all_dates as 
-                                                      (select "StoreDate" as "Date" from "Watches" where "StoreDate" >= {0} union select "Date" from "NoVideoEvents")
+                                                      (select "Date" from "Watches" where "Date" >= {0} union select "Date" from "NoVideoEvents")
                                                   select 
                                                          counts.dyear::int "year", 
                                                          count,
