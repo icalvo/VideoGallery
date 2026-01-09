@@ -2,7 +2,6 @@
 using Spectre.Console.Rendering;
 using VideoGallery.Interfaces;
 using VideoGallery.Library;
-using VideoGallery.Library.Infrastructure;
 using VideoGallery.Library.Parsing;
 
 namespace VideoGallery.CommandLine;
@@ -39,13 +38,7 @@ public class RegisterVideo : ICommand
             return;
         }
         
-        IVideoManager videoManager = _options.Storage switch
-        {
-            "dropbox" => new DropboxVideoManager(new ConsoleDropboxClientFactory(Options.DropboxAppKey),
-                _options.VideosFolder),
-            "local" => new FileSystemVideoManager(_options.VideosFolder),
-            _ => throw new Exception("Unknown storage")
-        };
+        IVideoManager videoManager = VideoManagerFactory.Create(_options);
 
         if (!await videoManager.Exists(fileName))
         {
@@ -110,12 +103,12 @@ public class RegisterVideo : ICommand
                 continue;
             }
             
-            if (newTagNames.Length > 0 && !AskRequiredBoolean("There will be new tags, are you sure?"))
+            if (newTagNames.Length > 0 && !AskRequiredBoolean("There will be new tags. Are you ready to submit?"))
             {
                 continue;
             }
 
-            if (newTagNames.Length == 0 && !AskRequiredBoolean("Are you sure?"))
+            if (newTagNames.Length == 0 && !AskRequiredBoolean("Are you ready to submit?"))
             {
                 continue;
             }

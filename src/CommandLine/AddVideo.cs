@@ -41,13 +41,7 @@ public class AddVideo : ICommand
             return;
         }
 
-        IVideoManager videoManager = _options.Storage switch
-        {
-            "dropbox" => new DropboxVideoManager(new ConsoleDropboxClientFactory(Options.DropboxAppKey),
-                _options.VideosFolder),
-            "local" => new FileSystemVideoManager(_options.VideosFolder),
-            _ => throw new Exception("Unknown storage")
-        };
+        IVideoManager videoManager = VideoManagerFactory.Create(_options);
         AnsiConsole.WriteLine("Uploading to cloud...");
         await videoManager.Upload(fd.FilePath);
         AnsiConsole.WriteLine("Uploaded to cloud");

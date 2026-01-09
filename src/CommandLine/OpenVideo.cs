@@ -36,12 +36,7 @@ public class OpenVideo : ICommand
         var video = await _context.Videos.FindAsync(_shellContext.SelectedVideo(videoIndex))
                     ?? throw new Exception("Video not found");
 
-        IVideoManager videoManager = _options.Storage switch
-        {
-            "dropbox" => new DropboxVideoManager(new ConsoleDropboxClientFactory(Options.DropboxAppKey), _options.VideosFolder),
-            "local" => new FileSystemVideoManager(_options.VideosFolder),
-            _ => throw new Exception("Unknown storage")
-        };
+        IVideoManager videoManager = VideoManagerFactory.Create(_options);
         var fileToOpen = await videoManager.GetVideoSharedLink(video.Filename);
         ProcessStartInfo psi = new ProcessStartInfo
         {
