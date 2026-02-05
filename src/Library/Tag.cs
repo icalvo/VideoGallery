@@ -35,6 +35,9 @@ public partial class Tag : ITag
 
     public Guid Id { get; private set; }
 
+    /// <summary>
+    /// Full name of the tag, in the format c:text
+    /// </summary>
     public string Name
     {
         get => _name;

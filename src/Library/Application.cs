@@ -48,7 +48,7 @@ public class Application : ITagValidation
             await context.Videos.FindAsync([videoId], ct)
             ?? throw new Exception("Video not found");
         chosenVideo.NumSequences = numsequences;
-        await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await ApplyCalculatedTagRules(chosenVideo, context, ct);
         await context.SaveChangesAsync(ct);
     }
 
@@ -63,7 +63,8 @@ public class Application : ITagValidation
         var watchedDate = newDate;
 
         chosenVideo.Watch(watchedDate);
-        await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await ApplyCalculatedTagRules(chosenVideo, context, ct);
+        await ApplyWatchTagRules(chosenVideo, context, ct);
         await context.SaveChangesAsync(ct);
     }
 
@@ -76,7 +77,7 @@ public class Application : ITagValidation
             ?? throw new Exception("Video not found");
 
         video.RemoveWatch(watchDate);
-        await RecalculateCalculatedTags(video, context, ct);
+        await ApplyCalculatedTagRules(video, context, ct);
         await context.SaveChangesAsync(ct);
     }
 
@@ -92,7 +93,7 @@ public class Application : ITagValidation
             return;
 
         chosenVideo.Unwatch();
-        await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await ApplyCalculatedTagRules(chosenVideo, context, ct);
         await context.SaveChangesAsync(ct);
     }
 
@@ -113,7 +114,7 @@ public class Application : ITagValidation
         var (tags, error) = await AddTags(tagNames, context, ct);
         if (error is not null) return error;
         newVideo.AddTags(tags);
-        error = await RecalculateCalculatedTags(newVideo, context, ct);
+        error = await ApplyCalculatedTagRules(newVideo, context, ct);
         await context.SaveChangesAsync(ct);
         return error;
     }
@@ -126,7 +127,7 @@ public class Application : ITagValidation
         var (tags, error) = await AddTags(tagNames, context, ct);
         if (error is not null) return error;
         video.AddTags(tags);
-        var error2 = await RecalculateCalculatedTags(video, context, ct);
+        var error2 = await ApplyCalculatedTagRules(video, context, ct);
         await context.SaveChangesAsync(ct);
         return error2;
     }
@@ -137,7 +138,7 @@ public class Application : ITagValidation
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var video = await context.Videos.FindAsync([videoId], ct) ?? throw new Exception("Video not found");
         video.RemoveTags(video.Tags.Single(x => x.Id == tagId));
-        var error = await RecalculateCalculatedTags(video, context, ct);
+        var error = await ApplyCalculatedTagRules(video, context, ct);
         await context.SaveChangesAsync(ct);
         return error;
     }
@@ -170,7 +171,7 @@ public class Application : ITagValidation
             chosenVideo.Duration = duration.Value;
         chosenVideo.NumSequences = numSequences;
         chosenVideo.Comments = comments;
-        await RecalculateCalculatedTags(chosenVideo, context, ct);
+        await ApplyCalculatedTagRules(chosenVideo, context, ct);
         await context.SaveChangesAsync(ct);
     }
 
@@ -181,7 +182,7 @@ public class Application : ITagValidation
         var video = await context.Videos.FindAsync([videoId], ct) ?? throw new Exception("Video not found");
         var watch = await context.Watches.FirstAsync(w => w.VideoId == videoId && w.Date == date, ct);
         watch.Description = description;
-        await RecalculateCalculatedTags(video, context, ct);
+        await ApplyCalculatedTagRules(video, context, ct);
         await context.SaveChangesAsync(ct);
     }
     public async Task SetWatchDayComment(DateOnly date, string? comment, CancellationToken ct)
@@ -236,7 +237,7 @@ public class Application : ITagValidation
         var isError = false;
         foreach (var video in videos)
         {
-            var error = await RecalculateCalculatedTags(video, context, ct);
+            var error = await ApplyCalculatedTagRules(video, context, ct);
             if (error is not null)
             {
                 video.AddTags(unprocessed);
@@ -248,23 +249,39 @@ public class Application : ITagValidation
         if (isError) throw new Exception("Error recalculating calculated tags; videos have been marked as unprocessed");
     }
 
-    private async Task<string?> RecalculateCalculatedTags(Video chosenVideo, VideoContext context, CancellationToken ct)
+    private Task<string?> ApplyCalculatedTagRules(Video chosenVideo, VideoContext context, CancellationToken ct)
+        => ApplyTagRules(chosenVideo, context, _tagValidation.CalculatedTagRules, ct);
+    private Task<string?> ApplyWatchTagRules(Video chosenVideo, VideoContext context, CancellationToken ct)
+        => ApplyTagRules(chosenVideo, context, _tagValidation.WatchTagRules, ct);
+    private async Task<string?> ApplyTagRules(Video chosenVideo, VideoContext context, IEnumerable<TagRule> tagRules, CancellationToken ct)
     {
-        var calculatedTagNames = new List<string>();
-        foreach (var calculatedTagRule in _tagValidation.CalculatedTagRules)
+        List<string> calculatedTagNamesToAdd = [];
+        List<string> tagsToRemove = [];
+        foreach (var calculatedTagRule in tagRules)
         {
-            if (calculatedTagRule.cond(chosenVideo))
+            if (calculatedTagRule.Cond(chosenVideo))
             {
-                calculatedTagNames.AddRange(calculatedTagRule.tags(chosenVideo));
+                var tagsToAddByThisRule = calculatedTagRule.TagsToAdd(chosenVideo)
+                    .Except(chosenVideo.Tags.Select(t => t.Name)).ToArray();
+                calculatedTagNamesToAdd.AddRange(tagsToAddByThisRule);
+            }
+            else
+            {
+                var tagsToRemoveByThisRule = calculatedTagRule.TagsToRemove(chosenVideo)
+                    .Intersect(chosenVideo.Tags.Select(t => t.Name)).ToArray();
+                tagsToRemove.AddRange(tagsToRemoveByThisRule);
             }
         }
-        var (calculatedTags, error) = await AddTags(calculatedTagNames.ToArray(), context, ct);
+        if (calculatedTagNamesToAdd.Count == 0 && tagsToRemove.Count == 0) return null;
+        var (calculatedTags, error) = await AddTags(calculatedTagNamesToAdd.ToArray(), context, ct);
         if (error is not null) return error;
-        var newTagSet = chosenVideo.Tags.UnionBy(calculatedTags.ToArray(), t => t.Id).ToArray();
+        var newTagSet = chosenVideo.Tags
+            .UnionBy(calculatedTags, t => t.Id)
+            .ExceptBy(tagsToRemove, t => t.Name).ToArray();
         error = _tagValidation.ValidateTags(newTagSet);
         if (error is null)
         {
-            chosenVideo.AddTags(calculatedTags.ToArray());
+            chosenVideo.ReplaceTags(newTagSet);
         }
 
         return error;
@@ -275,7 +292,9 @@ public class Application : ITagValidation
         return _tagValidation.ValidateTags(tags);
     }
 
-    public IEnumerable<(Func<IVideo, bool> cond, Func<IVideo, string[]> tags)> CalculatedTagRules => _tagValidation.CalculatedTagRules;
+    public IEnumerable<TagRule> CalculatedTagRules => _tagValidation.CalculatedTagRules;
+    public IEnumerable<TagRule> WatchTagRules => _tagValidation.WatchTagRules;
+
     public string VideoEventTitle(IVideo video)
     {
         return _tagValidation.VideoEventTitle(video);

@@ -65,4 +65,10 @@ public class Video : IVideo
     {
         foreach (var tag in tagsToAdd) _tags.Add(tag);
     }
+
+    public void ReplaceTags(Tag[] newTagSet)
+    {
+        _tags.Clear();
+        AddTags(newTagSet);
+    }
 }

@@ -23,7 +23,10 @@ public interface ITagValidation
     ///
     /// A rule consists of a condition and a set of tags to add to the video if the condition is met.
     /// </remarks>
-    IEnumerable<(Func<IVideo, bool> cond, Func<IVideo, string[]> tags)> CalculatedTagRules { get; }
+    IEnumerable<TagRule> CalculatedTagRules { get; }
+
+    IEnumerable<TagRule> WatchTagRules { get; }
+
     /// <summary>
     /// Title to be shown for calendar watch events associated with a video.
     /// </summary>
@@ -36,4 +39,12 @@ public interface ITagValidation
     /// <param name="video"></param>
     /// <returns></returns>
     string VideoEventTooltip(IVideo video);
+}
+
+public record TagRule(Func<IVideo, bool> Cond, Func<IVideo, string[]> TagsToAdd, Func<IVideo, string[]> TagsToRemove)
+{
+    public TagRule(Func<IVideo, bool> cond, Func<IVideo, string[]> tagsToAdd)
+    : this(cond, tagsToAdd, tagsToAdd)
+    {
+    }
 }
