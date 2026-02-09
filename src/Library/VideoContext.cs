@@ -24,6 +24,22 @@ public class VideoContext : DbContext
     
     private static readonly string[] DurationFormats = ["%m", "m':'ss"];
 
+    private Expression<Func<Video, bool>> CategoryRecentlyRepeatedExpression(string a)
+    {
+        var split = a.Split(',');
+        if (split.Length != 2) throw new Exception("Invalid catrep expression");
+        var category = split[0][0];
+        var date = DateOnly.FromDateTime(DateTime.Today).AddMonths(-int.Parse(split[1]));
+        var recentArtistTags =
+            Videos.Where(v => v.Watches.Max(w => w.Date) >= date)
+                .SelectMany(x => x.Tags)
+                .Distinct()
+                .Where(t => t.TagCategoryId == category)
+                .Select(t => t.Name)
+                .ToList();
+        return v => v.Tags.Any(t => t.TagCategoryId == category && recentArtistTags.Contains(t.Name));
+    }
+
     private static Expression<Func<Video, bool>> MaxDurExpression(string a)
     {
         var timeSpan = TimeSpan.ParseExact(a, DurationFormats, CultureInfo.InvariantCulture);
@@ -57,6 +73,7 @@ public class VideoContext : DbContext
     }
     public IQueryable<CustomQueryExpression<Video>> CustomQueryExpressions => new[]
     {
+        CustomQueryExpression<Video>.Prefix("catrep:", CategoryRecentlyRepeatedExpression),
         CustomQueryExpression<Video>.Prefix("maxdur:", MaxDurExpression),
         CustomQueryExpression<Video>.Prefix("mindur:", MinDurExpression),
         CustomQueryExpression<Video>.Prefix("lastview:", LastViewExpression),
