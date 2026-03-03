@@ -1,4 +1,4 @@
-﻿using System.Collections.Frozen;
+using System.Collections.Frozen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VideoGallery.Interfaces;
@@ -349,11 +349,11 @@ public class Application : ITagValidation
                                                                             with all_dates as 
                                                                                 (select "Date" from "Watches" where "Date" >= {0} union select "Date" from "NoVideoEvents")
                                                                             select 
-                                                                                   null "year",
-                                                                                   count("Date") count,
+                                                                                   null::int "year",
+                                                                                   count("Date")::int count,
                                                                                    min("Date") mindate,
                                                                                    max("Date") maxdate,
-                                                                                   (max("Date")-min("Date")) / count("Date") avgSepInDays
+                                                                                   (max("Date")-min("Date"))::float8 / count("Date") avgSepInDays
                                                                             from all_dates
                                                                             """, startDate).ToArrayAsync(ct);
         var yearlyStats = await context.Database.SqlQueryRaw<YearlyStat>("""
@@ -362,10 +362,10 @@ public class Application : ITagValidation
                                                   select 
                                                          counts.dyear::int "year", 
                                                          count,
-                                                         if(limitType = 'min', ldate, make_date(counts.dyear::int, 1, 1)) mindate,
-                                                         if(limitType = 'max', ldate, make_date(counts.dyear::int, 12, 31)) maxdate, 
-                                                         (if(limitType = 'max', ldate, make_date(counts.dyear::int, 12, 31)) -
-                                                         if(limitType = 'min', ldate, make_date(counts.dyear::int, 1, 1))) / count avgSepInDays
+                                                         case when limitType = 'min' then ldate else make_date(counts.dyear::int, 1, 1) end mindate,
+                                                         case when limitType = 'max' then ldate else make_date(counts.dyear::int, 12, 31) end maxdate, 
+                                                         (case when limitType = 'max' then ldate else make_date(counts.dyear::int, 12, 31) end -
+                                                         case when limitType = 'min' then ldate else make_date(counts.dyear::int, 1, 1) end)::float8 / count avgSepInDays
                                                   from
                                                   (
                                                       select min("Date") ldate, date_part('year', min("Date")) dyear, 'min' limitType
@@ -374,7 +374,7 @@ public class Application : ITagValidation
                                                       select max("Date") ldate, date_part('year', max("Date")) dyear, 'max' limitType
                                                       from all_dates) years
                                                   right join
-                                                       (select  date_part('year', "Date") dyear, count("Date") count
+                                                       (select  date_part('year', "Date") dyear, count("Date")::int count
                                                         from all_dates
                                                         group by date_part('year', "Date")) counts
                                                   on years.dyear = counts.dyear

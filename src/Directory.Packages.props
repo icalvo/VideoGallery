@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
@@ -30,5 +30,6 @@
     <PackageVersion Include="OpenIddict.Client.WebIntegration" Version="6.1.1" />
     <PackageVersion Include="Spectre.Console" Version="0.54.0" />
     <PackageVersion Include="System.Reactive" Version="6.0.1" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.10.0" />
   </ItemGroup>
 </Project>

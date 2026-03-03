@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -127,6 +127,7 @@ public class VideoContext : DbContext
         _ = b.Entity<TagCategory>(c =>
         {
             c.HasKey(c => c.Code);
+            c.Property(c => c.Code).ValueGeneratedNever();
             c.HasMany<Tag>(t => t.Tags)
                 .WithOne(t => t.Category)
                 .HasForeignKey(e => e.TagCategoryId)
@@ -136,7 +137,7 @@ public class VideoContext : DbContext
         b.Entity<WatchDayComment>().HasKey(x => x.Date);
         _ = b.Entity<Watch>(w =>
         {
-            w.Property(x => x.Id).HasDefaultValueSql("generated_random_uuid()");
+            w.Property(x => x.Id).HasDefaultValueSql("gen_random_uuid()");
             w.HasIndex(x => new { x.VideoId, x.Date }).IsUnique();
         });
         _ = b.Entity<Tag>(t =>
