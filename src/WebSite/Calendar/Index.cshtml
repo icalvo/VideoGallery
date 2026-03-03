@@ -1,4 +1,4 @@
-﻿@page
+@page
 @using System.Globalization
 @model CalendarModel
 @{
@@ -282,7 +282,7 @@
         @foreach (var stat in Model.YearlyStats!)
         {
             <div class="stat-value"><b>@(stat.Year?.ToString() ?? "All time"): </b>@stat.Count events,
-                @stat.AvgSepInDays.ToString("F1") days between events</div>
+                @stat.AvgFrequencyInDays.ToString("F1") days between events</div>
         }
     </div>
     <div class="calendar-container">

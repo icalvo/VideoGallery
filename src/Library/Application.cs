@@ -342,44 +342,49 @@ public class Application : ITagValidation
         return null;
     }
 
-    public async Task<YearlyStat[]> GetYearlyStats(DateOnly startDate, CancellationToken ct)
+    public async Task<YearlyStat[]> GetYearlyStats(CancellationToken ct, DateOnly? asOfDate = null)
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var today = asOfDate ?? DateOnly.FromDateTime(DateTime.Today);
         var globalStats = await context.Database.SqlQueryRaw<YearlyStat>("""
-                                                                            with all_dates as 
-                                                                                (select "Date" from "Watches" where "Date" >= {0} union select "Date" from "NoVideoEvents")
-                                                                            select 
-                                                                                   null::int "year",
-                                                                                   count("Date")::int count,
-                                                                                   min("Date") mindate,
-                                                                                   max("Date") maxdate,
-                                                                                   (max("Date")-min("Date"))::float8 / count("Date") avgSepInDays
-                                                                            from all_dates
-                                                                            """, startDate).ToArrayAsync(ct);
+            with all_dates as
+                (select "Date" from "Watches" where "Date" is not null union select "Date" from "NoVideoEvents")
+            select
+                null::int "year",
+                count("Date")::int count,
+                min("Date") mindate,
+                {0} maxdate,
+                ({0} - min("Date"))::float8 / count("Date")::float8 avgFrequencyInDays
+            from all_dates
+            """, today).ToArrayAsync(ct);
         var yearlyStats = await context.Database.SqlQueryRaw<YearlyStat>("""
-                                                  with all_dates as 
-                                                      (select "Date" from "Watches" where "Date" >= {0} union select "Date" from "NoVideoEvents")
-                                                  select 
-                                                         counts.dyear::int "year", 
-                                                         count,
-                                                         case when limitType = 'min' then ldate else make_date(counts.dyear::int, 1, 1) end mindate,
-                                                         case when limitType = 'max' then ldate else make_date(counts.dyear::int, 12, 31) end maxdate, 
-                                                         (case when limitType = 'max' then ldate else make_date(counts.dyear::int, 12, 31) end -
-                                                         case when limitType = 'min' then ldate else make_date(counts.dyear::int, 1, 1) end)::float8 / count avgSepInDays
-                                                  from
-                                                  (
-                                                      select min("Date") ldate, date_part('year', min("Date")) dyear, 'min' limitType
-                                                      from all_dates 
-                                                      union
-                                                      select max("Date") ldate, date_part('year', max("Date")) dyear, 'max' limitType
-                                                      from all_dates) years
-                                                  right join
-                                                       (select  date_part('year', "Date") dyear, count("Date")::int count
-                                                        from all_dates
-                                                        group by date_part('year', "Date")) counts
-                                                  on years.dyear = counts.dyear
-                                                  order by counts.dyear::int
-                                                  """, startDate).ToArrayAsync(ct);
+            with all_dates as
+                (select "Date" from "Watches" where "Date" is not null union select "Date" from "NoVideoEvents"),
+            first_year as
+                (select date_part('year', min("Date"))::int yr, min("Date") dt from all_dates),
+            counts as
+                (select date_part('year', "Date")::int dyear, count("Date")::int count
+                 from all_dates
+                 group by date_part('year', "Date")),
+            ranges as
+                (select
+                    dyear, count,
+                    case when dyear = (select yr from first_year)
+                         then (select dt from first_year)
+                         else make_date(dyear, 1, 1) end mindate,
+                    case when dyear = date_part('year', {0}::date)::int
+                         then {0}
+                         else make_date(dyear, 12, 31) end maxdate
+                 from counts)
+            select
+                dyear "year",
+                count,
+                mindate,
+                maxdate,
+                (maxdate - mindate)::float8 / count::float8 avgFrequencyInDays
+            from ranges
+            order by dyear asc
+            """, today).ToArrayAsync(ct);
         return globalStats.Concat(yearlyStats).ToArray();
     }
 

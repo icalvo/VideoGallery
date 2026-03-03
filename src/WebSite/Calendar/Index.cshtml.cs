@@ -22,7 +22,7 @@ public class CalendarModel : PageModel
     {
         var startDate = await _application.FirstEvent(ct) ?? new DateOnly(DateTime.Today.Year, 1, 1);
         startDate = new DateOnly(startDate.Year, startDate.Month, 1);
-        YearlyStats = await _application.GetYearlyStats(startDate, ct);
+        YearlyStats = await _application.GetYearlyStats(ct);
         var vidsPerDate = (await _application.GetVideosPerDate(startDate, ct))
             .SelectMany(v => v.Watches.Select(w => new {w, v}))
             .WithoutNullsStr(x => x.w.Date, (x, d) => (x.w, x.v, d))
