@@ -96,6 +96,10 @@
     }
 
     .day-number {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.125rem;
         font-size: 1.2em;
         font-weight: bold;
         margin-bottom: 0.625rem;
@@ -264,6 +268,33 @@
         opacity: 1;
     }
 
+    .plus-icon {
+        cursor: pointer;
+        margin-left: 0.125rem;
+        font-size: 0.95em;
+        font-weight: bold;
+        color: #0d6efd;
+        opacity: 0.85;
+        transition: opacity 0.2s;
+        user-select: none;
+    }
+
+    .plus-icon:hover {
+        opacity: 1;
+    }
+
+    /* Same glyph/classes as video tag delete (_VideoTagsEditor): badge rounded-pill text-bg-danger, "x" */
+    .delete-no-video {
+        cursor: pointer;
+        margin-left: 0.35rem;
+        vertical-align: middle;
+        user-select: none;
+    }
+
+    .delete-no-video:hover {
+        filter: brightness(0.92);
+    }
+
     /* Screen reader only class for accessibility */
     .sr-only {
         position: absolute;
@@ -320,14 +351,22 @@
 
                     foreach (var day in week)
                     {
+                        var dayHasEvent = day.Events.Any();
                         <div class="calendar-day @(day.Date.Month % 2 == 0 ? "even" : "odd")">
                             <div 
                                 class="day-number"
                                 data-date="@day.Date.ToString("yyyy-MM-dd")" 
                                 data-comment="@day.WatchDayComment"
                             >
-                                @day.Date.Day
-                                <span class="note-icon" data-icon onclick="openCommentModal(this)" title="Edit watch day comment">@(day.WatchDayComment == null ? "⬜" : "📝")</span>
+                                <span>@day.Date.Day</span>
+                                @if (dayHasEvent)
+                                {
+                                    <span class="note-icon" data-comment-icon onclick="openCommentModal(this)" title="Edit watch day comment">@(day.WatchDayComment == null ? "⬜" : "📝")</span>
+                                }
+                                else
+                                {
+                                    <span class="plus-icon" onclick="createNoVideoEventFromPlus(this)" title="Add no-video day">+</span>
+                                }
                             </div>
                             <div class="events">
                                 @foreach (var ev in day.Events)
@@ -345,7 +384,10 @@
                                     }
                                     else
                                     {
-                                        <div class="event" title="@ev.Tooltip">@ev.Title</div>
+                                        <div class="event" title="@ev.Tooltip" data-no-video-date="@day.Date.ToString("yyyy-MM-dd")">
+                                            @ev.Title
+                                            <span class="badge rounded-pill text-bg-danger delete-no-video" onclick="deleteNoVideoEventFromEl(this)" title="Remove no-video day">x</span>
+                                        </div>
                                     }
                                 }
                             </div>
@@ -438,6 +480,64 @@
     function closeCommentModal() {
         document.getElementById('commentModal').style.display = 'none';
     }
+
+    async function createNoVideoEventFromPlus(plusEl) {
+        const row = plusEl.closest('.day-number');
+        const date = row.getAttribute('data-date');
+        await createNoVideoEvent(date);
+    }
+
+    async function createNoVideoEvent(date) {
+        if (!date) return;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        try {
+            const response = await fetch('?handler=CreateNoVideoEvent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: 'date=' + encodeURIComponent(date)
+            });
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
+    function deleteNoVideoEventFromEl(el) {
+        const date = el.closest('.event').getAttribute('data-no-video-date');
+        deleteNoVideoEvent(date);
+    }
+
+    async function deleteNoVideoEvent(date) {
+        if (!date || !confirm('Remove this no-video day?')) return;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        try {
+            const response = await fetch('?handler=DeleteNoVideoEvent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: 'date=' + encodeURIComponent(date)
+            });
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+
     // Close modal when clicking outside of it
     window.onclick = function(event) {
         const modal = document.getElementById('descriptionModal');
@@ -475,7 +575,10 @@
                 const eventElement = document.querySelector(`[data-date="${date}"]`);
                 if (eventElement) {
                     eventElement.setAttribute('data-comment', comment);
-                    eventElement.querySelector('[data-icon]').innerHTML = comment ? '📝' : '⬜';
+                    const commentIcon = eventElement.querySelector('[data-comment-icon]');
+                    if (commentIcon) {
+                        commentIcon.innerHTML = comment ? '📝' : '⬜';
+                    }
                 }
                 closeCommentModal();
             } else {

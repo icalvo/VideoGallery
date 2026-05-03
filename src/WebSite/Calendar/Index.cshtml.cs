@@ -74,6 +74,32 @@ public class CalendarModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnPostCreateNoVideoEvent(DateOnly date, CancellationToken ct)
+    {
+        try
+        {
+            await _application.AddNoVideoEvent(date, ct);
+            return new JsonResult(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, error = ex.Message });
+        }
+    }
+
+    public async Task<IActionResult> OnPostDeleteNoVideoEvent(DateOnly date, CancellationToken ct)
+    {
+        try
+        {
+            await _application.RemoveNoVideoEvent(date, ct);
+            return new JsonResult(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, error = ex.Message });
+        }
+    }
+
     private static IEnumerable<DateOnly> Enumerate(DateOnly d1, DateOnly d2)
     {
         while (d1 <= d2)

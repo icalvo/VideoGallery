@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using VideoGallery.Interfaces;
@@ -399,6 +399,25 @@ public class Application : ITagValidation
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         return await context.NoVideoEvents.ToArrayAsync(ct);
+    }
+
+    public async Task AddNoVideoEvent(DateOnly date, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        if (await context.NoVideoEvents.AnyAsync(e => e.Date == date, ct))
+            return;
+        context.NoVideoEvents.Add(new NoVideoEvent(date));
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveNoVideoEvent(DateOnly date, CancellationToken ct)
+    {
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var existing = await context.NoVideoEvents.FirstOrDefaultAsync(e => e.Date == date, ct);
+        if (existing is null)
+            return;
+        context.NoVideoEvents.Remove(existing);
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task<DateOnly?> FirstEvent(CancellationToken ct)
