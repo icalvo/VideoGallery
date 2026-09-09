@@ -60,11 +60,20 @@ internal class VideoDetailModel : PageModel
 
     public async Task<IActionResult> OnPostEditVideo(Guid id, CancellationToken ct)
     {
+        var existing = await _application.GetVideoById(id, ct);
         await _application.UpdateVideo(
             id, 
             Duration == null ? null : TimeSpan.ParseExact(Duration, [@"m\:ss", @"h\:mm\:ss"], null), 
             NumSequences, 
-            Comments, ct);
+            // Duration form does not post Comments; keep existing value
+            Comments ?? existing.Comments, ct);
+        return RedirectToPage("Index", new { Id = id });
+    }
+
+    public async Task<IActionResult> OnPostEditVideo2(Guid id, CancellationToken ct)
+    {
+        var existing = await _application.GetVideoById(id, ct);
+        await _application.UpdateVideo(id, existing.Duration, existing.NumSequences, Comments, ct);
         return RedirectToPage("Index", new { Id = id });
     }
 
