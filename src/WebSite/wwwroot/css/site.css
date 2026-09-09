@@ -37,3 +37,26 @@ body {
 .bi-x {
     color: red;
 }
+
+/* Match badge.rounded-pill size/type; keep form-like white + grey border */
+.taginput {
+  display: inline-block;
+  width: auto;
+  min-width: 10em;
+  margin-top: 0.25rem;
+  padding: 0.35em 0.65em;
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bs-body-color);
+  background-color: var(--bs-body-bg);
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-pill);
+  vertical-align: baseline;
+}
+
+.taginput:focus {
+  outline: 0;
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}

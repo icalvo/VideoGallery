@@ -19,7 +19,7 @@
 }
 <form asp-page-handler="AddVideoTags" method="post" class="d-inline" asp-route-returnUrl="@Context.Request.GetEncodedPathAndQuery()">
     <input type="hidden" name="videoId" value="@Model.VideoId"/>
-    <input id="tags@(Model.VideoId.ToString("N"))" class="w-25 d-inline mt-1 form-control form-control-sm taginput" type="email" name="tags" placeholder="comma separated tags" multiple="multiple" list="alltags" />
+    <input id="tags@(Model.VideoId.ToString("N"))" class="taginput" type="email" name="tags" placeholder="comma separated tags" multiple="multiple" list="alltags" />
     @if (renderedBlocks.Add("TagDataList"))
     { 
         <datalist id="alltags">
