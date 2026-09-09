@@ -11,7 +11,8 @@ public record GridSettings(
     TimeSpan? MaxDuration = null)
 {
     public GridSettings WithPending => this with { WatchedFilter = WatchedVideoFilter.Pending }; 
-    public GridSettings WithWatched => this with { WatchedFilter = WatchedVideoFilter.Watched }; 
+    public GridSettings WithWatched => this with { WatchedFilter = WatchedVideoFilter.Watched };
+    public GridSettings WithUndated => this with { WatchedFilter = WatchedVideoFilter.Undated };
     public GridSettings WithAll => this with { WatchedFilter = WatchedVideoFilter.All };
     
     public static readonly IParser<GridSettings> ParseMap =
@@ -20,6 +21,7 @@ public record GridSettings(
             Either(
                 Constant<GridSettings>("pending", "Include only pending to watch", s => s.WithPending),
                 Constant<GridSettings>("watched", "Include only watched", s => s.WithWatched),
+                Constant<GridSettings>("undated", "Include only watched with no watch date", s => s.WithUndated),
                 Constant<GridSettings>("all", "Include pending and watched", s => s.WithAll),
                 Concat(
                     "duration",

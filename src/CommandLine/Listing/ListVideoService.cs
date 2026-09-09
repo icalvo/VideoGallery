@@ -15,6 +15,7 @@ public static class ListVideoService
             {
                 WatchedVideoFilter.Pending => query.Where(v => !v.Watches.Any()),
                 WatchedVideoFilter.Watched => query.Where(v => v.Watches.Any()),
+                WatchedVideoFilter.Undated => query.Where(v => v.Watches.Any() && v.Watches.All(w => w.Date == null)),
                 WatchedVideoFilter.All => query,
                 _ => query.Where(v => !v.Watches.Any())
             };

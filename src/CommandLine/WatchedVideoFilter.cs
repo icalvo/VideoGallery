@@ -4,5 +4,6 @@ public enum WatchedVideoFilter
 {
     Pending,
     Watched,
+    Undated,
     All
 }

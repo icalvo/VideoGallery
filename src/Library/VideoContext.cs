@@ -63,6 +63,10 @@ public class VideoContext : DbContext
 
     private static Expression<Func<Video, bool>> LastViewExpression(string a)
     {
+        if (a == "unknown")
+            // Watched, but every watch has a null date (grid shows "W")
+            return v => v.Watches.Any() && v.Watches.All(w => w.Date == null);
+
         var date =
             a.EndsWith('m')
                 ? DateOnly.FromDateTime(DateTime.Today).AddMonths(-int.Parse(a[..^1]))
