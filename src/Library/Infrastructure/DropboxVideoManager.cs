@@ -66,6 +66,10 @@ public class DropboxVideoManager : IVideoManager
         return await downloadResponse.GetContentAsStreamAsync();
     }
 
+    // Dropbox simple upload is limited to 150 MB; larger files need an upload session.
+    private const long SimpleUploadLimitBytes = 150L * 1024 * 1024;
+    private const int ChunkSizeBytes = 8 * 1024 * 1024;
+
     public async Task Upload(string filePath, CancellationToken ct = default)
     {
         var client = await ClientInstance(ct);
@@ -78,12 +82,65 @@ public class DropboxVideoManager : IVideoManager
             Console.WriteLine("File already uploaded");
             return;
         }
-        var stream = File.OpenRead(filePath);
 
-        var updated = await client.Files.UploadAsync(
-            dropboxFilePath,
-            WriteMode.Overwrite.Instance,
-            body: stream);
+        await using var stream = File.OpenRead(filePath);
+        FileMetadata updated;
+        if (stream.Length <= SimpleUploadLimitBytes)
+        {
+            updated = await client.Files.UploadAsync(
+                dropboxFilePath,
+                WriteMode.Overwrite.Instance,
+                body: stream);
+        }
+        else
+        {
+            Console.WriteLine("Large file ({0:N1} MB); using chunked upload", stream.Length / (1024.0 * 1024.0));
+            updated = await UploadChunked(client, dropboxFilePath, stream, ct);
+        }
+
         Console.WriteLine("Saved {0}{1} rev {2}", _baseFolder, fileName, updated.Rev);
+    }
+
+    private static async Task<FileMetadata> UploadChunked(
+        DropboxClient client,
+        string dropboxFilePath,
+        Stream stream,
+        CancellationToken ct)
+    {
+        var buffer = new byte[ChunkSizeBytes];
+        var fileSize = (ulong)stream.Length;
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, ChunkSizeBytes), ct);
+        string sessionId;
+        await using (var firstChunk = new MemoryStream(buffer, 0, bytesRead))
+        {
+            var start = await client.Files.UploadSessionStartAsync(body: firstChunk);
+            sessionId = start.SessionId;
+        }
+
+        var offset = (ulong)bytesRead;
+        while (offset < fileSize)
+        {
+            ct.ThrowIfCancellationRequested();
+            bytesRead = await stream.ReadAsync(buffer.AsMemory(0, ChunkSizeBytes), ct);
+            await using var chunk = new MemoryStream(buffer, 0, bytesRead);
+            var cursor = new UploadSessionCursor(sessionId, offset);
+            var nextOffset = offset + (ulong)bytesRead;
+
+            if (nextOffset >= fileSize)
+            {
+                var commit = new CommitInfo(dropboxFilePath, WriteMode.Overwrite.Instance);
+                return await client.Files.UploadSessionFinishAsync(cursor, commit, body: chunk);
+            }
+
+            await client.Files.UploadSessionAppendV2Async(cursor, body: chunk);
+            offset = nextOffset;
+            var percent = offset * 100.0 / fileSize;
+            Console.WriteLine("Uploaded {0:N1} / {1:N1} MB ({2:N0}%)",
+                offset / (1024.0 * 1024.0),
+                fileSize / (1024.0 * 1024.0),
+                percent);
+        }
+
+        throw new InvalidOperationException("Upload finished without a final chunk.");
     }
 }
