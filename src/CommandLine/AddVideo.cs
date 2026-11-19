@@ -29,9 +29,10 @@ public class AddVideo : ICommand
             throw new CommandArgumentException("Need a URL or filename");
         }
 
-        using var fd = await DownloadVideoFile(urlOrFilePath);
-        AnsiConsole.MarkupLineInterpolated($"[yellow]File to be imported:[/] {fd.FilePath}");
-        var fileName = Path.GetFileName(fd.FilePath);
+        IVideoManager videoManager = VideoManagerFactory.Create(_options);
+        var (fileName, import) = await PrepareImport(urlOrFilePath);
+
+        AnsiConsole.MarkupLineInterpolated($"[yellow]File to be imported:[/] {fileName}");
         if ((await _application.GetVideos(
                 new QuerySpec(
                     "\"" + fileName.Replace("\"", "\\\"") + "\""),
@@ -41,10 +42,7 @@ public class AddVideo : ICommand
             return;
         }
 
-        IVideoManager videoManager = VideoManagerFactory.Create(_options);
-        AnsiConsole.WriteLine("Uploading to cloud...");
-        await videoManager.Upload(fd.FilePath);
-        AnsiConsole.WriteLine("Uploaded to cloud");
+        await import(videoManager);
 
         TimeSpan duration = await videoManager.GetDuration(fileName);
 
@@ -63,33 +61,102 @@ public class AddVideo : ICommand
         AnsiConsole.WriteLine($"Video added to DB with id {newVideo.Id}");
     }
 
-    private record FileDownload : IDisposable
-    {
-        private readonly IDisposable _disposableImplementation;
-
-        public FileDownload(string FilePath, IDisposable disposableImplementation)
-        {
-            this.FilePath = FilePath;
-            _disposableImplementation = disposableImplementation;
-        }
-
-        public void Dispose()
-        {
-            _disposableImplementation.Dispose();
-        }
-
-        public string FilePath { get; init; }
-    }
-
-    private static async Task<FileDownload> DownloadVideoFile(string urlOrFilePath)
+    private async Task<(string fileName, Func<IVideoManager, Task> import)> PrepareImport(string urlOrFilePath)
     {
         if (!Uri.IsWellFormedUriString(urlOrFilePath, UriKind.Absolute))
-            return new FileDownload(urlOrFilePath, new NoopDisposable());
-        
-        AnsiConsole.WriteLine("Downloading video...");
+        {
+            return (Path.GetFileName(urlOrFilePath), async videoManager =>
+            {
+                AnsiConsole.WriteLine("Uploading to cloud...");
+                await videoManager.Upload(urlOrFilePath);
+                AnsiConsole.WriteLine("Uploaded to cloud");
+            });
+        }
+
         var downloader = new YtDlpVideoDownloader();
-        var tempFile = await downloader.Download(urlOrFilePath);
-        return new FileDownload(tempFile, new TempFile(tempFile));
+        var formats = await AnsiConsole.Status()
+            .StartAsync("Fetching formats...", async _ => await downloader.ListFormats(urlOrFilePath));
+
+        string? format = null;
+        if (formats.Count > 1)
+            format = AskFormat(formats);
+
+        var fileName = await downloader.GetOutputFileName(urlOrFilePath, format);
+        if (CanStream(format, formats.Count))
+        {
+            return (fileName, async videoManager =>
+            {
+                AnsiConsole.WriteLine("Streaming download directly to storage...");
+                await downloader.StreamDownload(urlOrFilePath,
+                    (stream, ct) => videoManager.Upload(stream, fileName, ct), format);
+                AnsiConsole.WriteLine("Uploaded to cloud");
+            });
+        }
+
+        return (fileName, async videoManager =>
+        {
+            AnsiConsole.WriteLine("Downloading video...");
+            var tempFile = await downloader.Download(urlOrFilePath, format);
+            using var _ = new TempFile(tempFile);
+            AnsiConsole.WriteLine("Uploading to cloud...");
+            await videoManager.Upload(tempFile);
+            AnsiConsole.WriteLine("Uploaded to cloud");
+        });
+    }
+
+    private bool CanStream(string? format, int formatCount) =>
+        _options.Storage == "dropbox"
+        && (format is null ? formatCount <= 1 : !format.Contains('+'));
+
+    private static string? AskFormat(IReadOnlyList<VideoFormat> formats)
+    {
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .AddColumn("ID")
+            .AddColumn("EXT")
+            .AddColumn("Resolution")
+            .AddColumn("Size")
+            .AddColumn("Note");
+
+        foreach (var f in formats)
+            table.AddRow(Markup.Escape(f.Id), Markup.Escape(f.Ext), Markup.Escape(f.Resolution),
+                Markup.Escape(f.Size), Markup.Escape(f.Note));
+
+        AnsiConsole.Write(table);
+
+        var validIds = formats.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+        var combined = formats.LastOrDefault(f => f.VCodec is not "none" && f.ACodec is not "none");
+        var videoOnly = formats.LastOrDefault(f => f.VCodec is not "none" && f.ACodec is "none");
+        var audioOnly = formats.LastOrDefault(f => f.ACodec is not "none" && f.VCodec is "none");
+
+        var examples = new List<string>();
+        if (combined is not null)
+            examples.Add(combined.Id);
+        else if (formats.Count > 0)
+            examples.Add(formats[^1].Id);
+        if (videoOnly is not null && audioOnly is not null)
+            examples.Add($"{videoOnly.Id}+{audioOnly.Id}");
+        var exampleText = string.Join(", ", examples);
+
+        return AnsiConsole.Prompt(
+            new TextPrompt<string>($"Select format ID (e.g. {exampleText}, or Enter = best)")
+                .AllowEmpty()
+                .Validate(choice =>
+                {
+                    if (string.IsNullOrWhiteSpace(choice))
+                        return ValidationResult.Success();
+
+                    var parts = choice.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    var invalid = parts.Where(p => !validIds.Contains(p)).ToArray();
+                    return invalid.Length > 0
+                        ? ValidationResult.Error($"Unknown format(s): {string.Join(", ", invalid)}. Choose an ID from the table.")
+                        : ValidationResult.Success();
+                })) switch
+        {
+            { Length: > 0 } choice => string.Join('+',
+                choice.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
+            _ => null
+        };
     }
 
     public IRenderable Syntax()

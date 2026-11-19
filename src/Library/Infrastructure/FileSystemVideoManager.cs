@@ -22,6 +22,14 @@ public class FileSystemVideoManager : IVideoManager
         return Task.CompletedTask;
     }
 
+    public async Task Upload(Stream content, string fileName, CancellationToken ct = default)
+    {
+        var destination = Path.Combine(_videosFolder, fileName);
+        await using var file = File.Create(destination);
+        await content.CopyToAsync(file, ct);
+        Console.WriteLine($"Saved to {destination}");
+    }
+
     public Task<bool> Exists(string video, CancellationToken ct = default)
     {
         return Task.FromResult(File.Exists(Path.Combine(_videosFolder, video)));
