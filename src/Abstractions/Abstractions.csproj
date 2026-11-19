@@ -5,11 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>VideoGallery.Interfaces</RootNamespace>
-    <PackageId>VideoGallery.Abstractions</PackageId>
-    <Authors>Ignacio Calvo</Authors>
-    <Description>Abstractions for the VideoGallery plugin system.</Description>
     <AssemblyName>VideoGallery.Abstractions</AssemblyName>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
 </Project>

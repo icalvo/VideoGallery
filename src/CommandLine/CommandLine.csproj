@@ -9,6 +9,8 @@
     <UserSecretsId>9816dd31-4f72-44b5-a192-f1dd400c5e47</UserSecretsId>
     <AssemblyName>vd</AssemblyName>
     <RootNamespace>VideoGallery.CommandLine</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>vd</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>

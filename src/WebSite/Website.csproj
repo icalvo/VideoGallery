@@ -6,7 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>VideoGallery.Website</RootNamespace>
     <UserSecretsId>656e2315-b913-4bd6-9496-b3ab857901cb</UserSecretsId>
-   <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
