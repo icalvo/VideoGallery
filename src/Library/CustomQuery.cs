@@ -20,6 +20,12 @@ public class CustomQuery
     public Guid Id { get; private set; }
     public string Label { get; private set; }
     public QuerySpec Spec { get; set; }
+
+    public void Rename(string newLabel)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newLabel);
+        Label = newLabel;
+    }
     
     public static readonly Expression<Func<CustomQuery, bool>> DefaultQueryExpression = q => q.Label == "Standard";
     private static readonly Func<CustomQuery, bool> CompiledDefaultQueryExpression = DefaultQueryExpression.Compile();

@@ -19,13 +19,17 @@ public record QuerySpec
 
     public Result<Expression<Func<T, bool>>> Compile<T>(
         Func<string, string> alias,
-        Func<string, Expression<Func<T, bool>>> atomResolver)
+        Func<string, Expression<Func<T, bool>>> atomResolver,
+        int maxAliasIterations = 100)
     {
         var search = BooleanExpressionParser.Parse(Search)
             .Map(expression => expression.ToString(alias));
         bool aliasFinished = false;
+        var iterations = 0;
         while (!aliasFinished && search.IsSuccess)
         {
+            if (++iterations > maxAliasIterations)
+                return Result<Expression<Func<T, bool>>>.Failure("Circular query reference detected");
             var newSearch = search.Bind(s =>
             {
                 return BooleanExpressionParser.Parse(s)

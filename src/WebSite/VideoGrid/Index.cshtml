@@ -9,26 +9,38 @@
     ViewData["Title"] = "Video grid";
 }
 
-<div>
-    @foreach (var customQuery in Model.CustomQueries)
-    {
-        <a class="btn btn-primary btn-sm" href="@Url.Page("./Index", customQuery.Spec)">
-            @customQuery.Label
-            @if (!customQuery.IsDefaultQuery)
-            {
-            <form asp-page-handler="DeleteQuery" method="post" class="d-inline" asp-route-returnUrl="@Request.GetEncodedPathAndQuery()">
-                <input type="hidden" name="queryName" value="@customQuery.Label"/>
-                <button type="submit" class="badge rounded-pill text-bg-danger">x</button>
-            </form>
-            }
-        </a>
-    }
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div class="d-flex flex-wrap gap-1">
+        @foreach (var customQuery in Model.CustomQueries)
+        {
+            <a class="btn btn-primary btn-sm" href="@Url.Page("./Index", customQuery.Spec)">
+                @customQuery.Label
+                @if (!customQuery.IsDefaultQuery && !Model.ReferencedQueryNames.Contains(customQuery.Label))
+                {
+                <form asp-page-handler="DeleteQuery" method="post" class="d-inline" asp-route-returnUrl="@Request.GetEncodedPathAndQuery()">
+                    <input type="hidden" name="queryName" value="@customQuery.Label"/>
+                    <button type="submit" class="badge rounded-pill text-bg-danger">x</button>
+                </form>
+                }
+            </a>
+        }
+    </div>
+    <form method="post" asp-page-handler="RenameQuery" class="ms-auto" asp-route-returnUrl="@Request.GetEncodedPathAndQuery()">
+        <div class="input-group input-group-sm">
+            <input type="text" class="form-control" name="queryName" placeholder="Query name" />
+            <input type="text" class="form-control" name="newQueryName" placeholder="New name" />
+            <button type="submit" class="btn btn-warning">Rename</button>
+        </div>
+    </form>
 </div>
 <div class="text-center">
     <form method="get" class="row my-3 g-3">
         <div class="col-9">
             <label for="Search" class="visually-hidden">Search</label>
-            <input id="Search" type="text" asp-for="Search" class="form-control" placeholder="Search" tabindex="0" />
+            <div class="input-group">
+                <input id="Search" type="text" asp-for="Search" class="form-control" placeholder="Search" tabindex="0" />
+                <a asp-page="/Help/Index" class="btn btn-outline-secondary" title="Query syntax help" tabindex="0">?</a>
+            </div>
         </div>
         <input type="hidden" asp-for="SortField"></input>
         <input type="hidden" asp-for="SortType"></input>

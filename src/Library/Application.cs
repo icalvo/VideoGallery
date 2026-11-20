@@ -25,11 +25,13 @@ public class Application : ITagValidation
     {
         await using var context = await _dbFactory.CreateDbContextAsync(ct);
         var catColors = await CategoriesCodeDictionary(context, ct);
+        var namedQueries = await context.Queries.ToDictionaryAsync(cq => cq.Label, cq => cq.Spec.Search, ct);
         var videos = await QueryBuilder.BuildQuery(
             context.Videos.Include(v => v.Tags).Include(v => v.Watches), 
             context.CustomQueryExpressions, 
             VideoContext.AddSorting, 
-            q).ToArrayAsync(ct);
+            q,
+            namedQueries).ToArrayAsync(ct);
         return videos
             .Select(v => new VideoDto(v, c => catColors[c]))
             .ToArray();
@@ -327,6 +329,33 @@ public class Application : ITagValidation
         
         await context.SaveChangesAsync(ct);
     }
+
+    public async Task<string?> RenameCustomQuery(string queryName, string newQueryName, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(queryName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(newQueryName);
+        if (queryName == newQueryName) return null;
+
+        await using var context = await _dbFactory.CreateDbContextAsync(ct);
+        var query = context.Queries.SingleOrDefault(q => q.Label == queryName);
+        if (query is null) return "Query not found";
+        if (query.IsDefaultQuery) return "Cannot rename default query";
+        if (context.Queries.Any(q => q.Label == newQueryName)) return "A query with that name already exists";
+
+        foreach (var q in context.Queries)
+        {
+            if (!QueryReferences.ContainsReference(q.Spec.Search, queryName))
+                continue;
+            q.Spec = new QuerySpec(
+                QueryReferences.RewriteReferences(q.Spec.Search, queryName, newQueryName),
+                q.Spec.SortType,
+                q.Spec.SortField);
+        }
+
+        query.Rename(newQueryName);
+        await context.SaveChangesAsync(ct);
+        return null;
+    }
     
     public async Task<string?> DeleteCustomQuery(string queryName, CancellationToken ct)
     {
@@ -335,6 +364,11 @@ public class Application : ITagValidation
         if (query != null)
         {
             if (query.IsDefaultQuery) return "Cannot delete default query";
+            var isReferenced = context.Queries
+                .Where(q => q.Label != queryName)
+                .AsEnumerable()
+                .Any(q => QueryReferences.ContainsReference(q.Spec.Search, queryName));
+            if (isReferenced) return "Cannot delete query because it is used in other queries";
             context.Queries.Remove(query);
         }
 

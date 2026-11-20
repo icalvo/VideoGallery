@@ -1,0 +1,128 @@
+@page
+@model HelpModel
+@{
+    ViewData["Title"] = "Query help";
+}
+
+<div class="container py-3" style="max-width: 52rem;">
+    <h1 class="h3 mb-4">Query syntax</h1>
+    <p class="text-muted">
+        The video grid search box accepts a boolean expression. Combine conditions with
+        <code>and</code>, <code>or</code>, <code>implies</code>, and <code>not</code>. Operators are case-insensitive.
+    </p>
+
+    <section class="mb-4">
+        <h2 class="h5">Operators and grouping</h2>
+        <ul>
+            <li><code>and</code> — both sides must match (binds tighter than <code>or</code>)</li>
+            <li><code>or</code> — either side may match</li>
+            <li><code>implies</code> — <em>A implies B</em> means “if A then B” (equivalent to <code>not A or B</code>); weakest binary operator, right-associative</li>
+            <li><code>not</code> — negates the next expression (right-associative)</li>
+            <li><code>( ... )</code> — group subexpressions; use when mixing operators</li>
+        </ul>
+        <p class="mb-1">Precedence (weakest → strongest): <code>implies</code>, <code>or</code>, <code>and</code>, <code>not</code>.</p>
+        <p class="mb-1">Examples:</p>
+        <pre class="bg-body-secondary p-3 rounded"><code>x:pending or x:unprocessed
+not x:pending and lastview:1y
+(x:pending or not lastview:1y) and not q:
+x:pending implies lastview:1y</code></pre>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h5">Atoms</h2>
+        <p>Each word (or quoted phrase) is an <em>atom</em>. How it is interpreted depends on its shape:</p>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                <tr>
+                    <th scope="col">Pattern</th>
+                    <th scope="col">Meaning</th>
+                    <th scope="col">Example</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>plain text</td>
+                    <td>Filename contains the text (case-insensitive)</td>
+                    <td><code>vacation</code></td>
+                </tr>
+                <tr>
+                    <td><code>"…"</code></td>
+                    <td>Same as plain text, but may contain spaces. Escape quotes with <code>\"</code></td>
+                    <td><code>"my video"</code></td>
+                </tr>
+                <tr>
+                    <td>contains <code>:</code></td>
+                    <td>Exact tag name</td>
+                    <td><code>x:pending</code></td>
+                </tr>
+                <tr>
+                    <td>ends with <code>:</code></td>
+                    <td>Any tag whose name starts with that prefix</td>
+                    <td><code>q:</code></td>
+                </tr>
+                <tr>
+                    <td><code>lastview:unknown</code></td>
+                    <td>Has watches, but every watch date is null (grid shows “W”)</td>
+                    <td><code>lastview:unknown</code></td>
+                </tr>
+                <tr>
+                    <td><code>lastview:Nm</code> / <code>lastview:Ny</code></td>
+                    <td>Latest non-null watch date is within the last <em>N</em> months or years</td>
+                    <td><code>lastview:3m</code>, <code>lastview:1y</code></td>
+                </tr>
+                <tr>
+                    <td><code>mindur:</code> / <code>maxdur:</code></td>
+                    <td>Duration at least / at most the given length (<code>m</code> or <code>m:ss</code>)</td>
+                    <td><code>mindur:5</code>, <code>maxdur:10:30</code></td>
+                </tr>
+                <tr>
+                    <td><code>catrep:c,Nm</code> / <code>catrep:c,Ny</code></td>
+                    <td>Has a tag in category <em>c</em> that also appears on a video watched in the last <em>N</em> months or years (same duration syntax as <code>lastview</code>)</td>
+                    <td><code>catrep:a,6m</code>, <code>catrep:a,1y</code></td>
+                </tr>
+                <tr>
+                    <td><code>`Name`</code></td>
+                    <td>Insert a saved query by name (see below)</td>
+                    <td><code>`P` and C</code></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h5">Saved queries</h2>
+        <p>
+            Save the current search under a name with <strong>Save query</strong>.
+            Click a saved query button to load it. Rename with the rename form;
+            delete with the <code>x</code> on the button (hidden while the query is referenced elsewhere).
+        </p>
+        <p>
+            Reference another saved query by wrapping its name in backticks.
+            The reference is replaced by that query’s search text, wrapped in parentheses
+            so operator precedence stays correct.
+        </p>
+        <pre class="bg-body-secondary p-3 rounded"><code>P  =  A or B
+Q  =  `P` and C
+     → equivalent to (A or B) and C</code></pre>
+        <ul>
+            <li>References can nest (A uses B, B uses C, …).</li>
+            <li>Circular references are rejected.</li>
+            <li>Renaming a query updates <code>`OldName`</code> to <code>`NewName`</code> in every saved search that uses it.</li>
+            <li>A query that is used by others cannot be deleted until those references are removed.</li>
+        </ul>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h5">Useful combinations</h2>
+        <pre class="bg-body-secondary p-3 rounded"><code>not x:pending and not lastview:unknown
+not x:unprocessed and lastview:1y
+(x:pending or not lastview:1y) and not q:
+`MyFilter` and not x:pending</code></pre>
+    </section>
+
+    <p>
+        <a asp-page="/VideoGrid/Index" class="btn btn-primary btn-sm">Back to videos</a>
+    </p>
+</div>

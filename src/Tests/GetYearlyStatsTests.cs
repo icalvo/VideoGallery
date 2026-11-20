@@ -183,8 +183,8 @@ public class GetYearlyStatsTests : IAsyncLifetime
     {
         public string? ValidateTags(IEnumerable<ITag> tags) => null;
 
-        public IEnumerable<(Func<IVideo, bool> cond, Func<IVideo, string[]> tags)> CalculatedTagRules
-            => [];
+        public IEnumerable<TagRule> CalculatedTagRules => [];
+        public IEnumerable<TagRule> WatchTagRules => [];
 
         public string VideoEventTitle(IVideo video) => "";
         public string VideoEventTooltip(IVideo video) => "";

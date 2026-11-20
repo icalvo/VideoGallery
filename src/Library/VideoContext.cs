@@ -29,7 +29,7 @@ public class VideoContext : DbContext
         var split = a.Split(',');
         if (split.Length != 2) throw new Exception("Invalid catrep expression");
         var category = split[0][0];
-        var date = DateOnly.FromDateTime(DateTime.Today).AddMonths(-int.Parse(split[1]));
+        var date = ParseRelativeLookbackDate(split[1]);
         var recentArtistTags =
             Videos.Where(v => v.Watches.Max(w => w.Date) >= date)
                 .SelectMany(x => x.Tags)
@@ -61,18 +61,20 @@ public class VideoContext : DbContext
         };
     }
 
+    private static DateOnly ParseRelativeLookbackDate(string a) =>
+        a.EndsWith('m')
+            ? DateOnly.FromDateTime(DateTime.Today).AddMonths(-int.Parse(a[..^1]))
+            : a.EndsWith('y')
+                ? DateOnly.FromDateTime(DateTime.Today).AddYears(-int.Parse(a[..^1]))
+                : throw new Exception("Invalid relative date format; use Nm or Ny (e.g. 3m, 1y)");
+
     private static Expression<Func<Video, bool>> LastViewExpression(string a)
     {
         if (a == "unknown")
             // Watched, but every watch has a null date (grid shows "W")
             return v => v.Watches.Any() && v.Watches.All(w => w.Date == null);
 
-        var date =
-            a.EndsWith('m')
-                ? DateOnly.FromDateTime(DateTime.Today).AddMonths(-int.Parse(a[..^1]))
-                : a.EndsWith('y')
-                    ? DateOnly.FromDateTime(DateTime.Today).AddYears(-int.Parse(a[..^1]))
-                    : throw new Exception("Invalid last view format");
+        var date = ParseRelativeLookbackDate(a);
         return v => v.Watches.Max(w => w.Date) >= date;
     }
     public IQueryable<CustomQueryExpression<Video>> CustomQueryExpressions => new[]
@@ -92,7 +94,7 @@ public class VideoContext : DbContext
             nameof(Video.Comments) => q.Sort(querySpec.SortType, x => x.Comments),
             nameof(Video.Duration) => q.Sort(querySpec.SortType, x => x.Duration),
             nameof(Video.NumSequences) => q.Sort(querySpec.SortType, x => x.NumSequences),
-            nameof(VideoExtensions.LastViewDate) => q.OrderBy(x => x.Watches.Count()).Sort(querySpec.SortType, x => x.Watches.Max(w => w.Date)),
+            nameof(VideoExtensions.LastViewDate) => q.Sort(querySpec.SortType, x => x.Watches.Max(w => w.Date)),
             _ => q
         };
 

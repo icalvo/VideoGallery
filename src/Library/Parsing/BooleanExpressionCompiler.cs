@@ -38,6 +38,11 @@ public static class BooleanExpressionCompiler
                 CompileExpression(or.Left, objParam, atomResolver),
                 CompileExpression(or.Right, objParam, atomResolver)
             ),
+            // A implies B ≡ ¬A ∨ B
+            ImpliesExpression implies => Expression.OrElse(
+                Expression.Not(CompileExpression(implies.Left, objParam, atomResolver)),
+                CompileExpression(implies.Right, objParam, atomResolver)
+            ),
             NotExpression not => Expression.Not(
                 CompileExpression(not.Expression, objParam, atomResolver)
             ),

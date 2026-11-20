@@ -10,7 +10,12 @@ public static class Lexer
         InWord,
         InQuotes,
     }
-    public static Result<List<Token>> Tokenize(string input, string andOperator, string orOperator, string notOperator)
+    public static Result<List<Token>> Tokenize(
+        string input,
+        string andOperator,
+        string orOperator,
+        string notOperator,
+        string impliesOperator = "implies")
     {
         var tokens = new List<Token>();
         var position = 0;
@@ -124,6 +129,8 @@ public static class Lexer
                 token = new Token(TokenType.And, wordStr, wordStart);
             else if (string.Equals(wordStr, orOperator, StringComparison.InvariantCultureIgnoreCase))
                 token = new Token(TokenType.Or, wordStr, wordStart);
+            else if (string.Equals(wordStr, impliesOperator, StringComparison.InvariantCultureIgnoreCase))
+                token = new Token(TokenType.Implies, wordStr, wordStart);
             else if (string.Equals(wordStr, notOperator, StringComparison.InvariantCultureIgnoreCase))
                 token = new Token(TokenType.Not, wordStr, wordStart);
             else 

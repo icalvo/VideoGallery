@@ -8,8 +8,13 @@ public class BooleanExpressionParser
     private BooleanExpressionParser()
     {
     }
-    public static Result<BooleanExpression> Parse(string input, string andOperator = "and", string orOperator = "or", string notOperator = "not") =>
-        Lexer.Tokenize(input, andOperator, orOperator, notOperator).Bind(
+    public static Result<BooleanExpression> Parse(
+        string input,
+        string andOperator = "and",
+        string orOperator = "or",
+        string notOperator = "not",
+        string impliesOperator = "implies") =>
+        Lexer.Tokenize(input, andOperator, orOperator, notOperator, impliesOperator).Bind(
             tokens =>
             {
                 var parser = new BooleanExpressionParser();
@@ -21,7 +26,7 @@ public class BooleanExpressionParser
         _tokens = tokens;
         _position = 0;
 
-        var result = ParseOrExpression();
+        var result = ParseImpliesExpression();
 
         if (result.IsFailure)
             return result;
@@ -40,6 +45,27 @@ public class BooleanExpressionParser
             : new Token(TokenType.EndOfInput, "", _tokens.Count > 0 ? _tokens[^1].Position : 0);
 
     private void Advance() => _position++;
+
+    // implies is weakest and right-associative: A implies B implies C ≡ A implies (B implies C)
+    private Result<BooleanExpression> ParseImpliesExpression()
+    {
+        var leftResult = ParseOrExpression();
+        if (leftResult.IsFailure)
+            return leftResult;
+
+        var left = ((Success<BooleanExpression>)leftResult).Value;
+
+        if (CurrentToken.Type != TokenType.Implies)
+            return Result<BooleanExpression>.Success(left);
+
+        Advance(); // consume IMPLIES
+        var rightResult = ParseImpliesExpression();
+        if (rightResult.IsFailure)
+            return rightResult;
+
+        var right = ((Success<BooleanExpression>)rightResult).Value;
+        return Result<BooleanExpression>.Success(BooleanExpression.Implies(left, right));
+    }
 
     private Result<BooleanExpression> ParseOrExpression()
     {
@@ -109,7 +135,7 @@ public class BooleanExpressionParser
 
             case TokenType.LeftParen:
                 Advance(); // consume (
-                var expressionResult = ParseOrExpression();
+                var expressionResult = ParseImpliesExpression();
                 if (expressionResult.IsFailure)
                     return expressionResult;
 
@@ -123,6 +149,7 @@ public class BooleanExpressionParser
 
             case TokenType.And:
             case TokenType.Or:
+            case TokenType.Implies:
             case TokenType.Not:
             case TokenType.RightParen:
             case TokenType.EndOfInput:

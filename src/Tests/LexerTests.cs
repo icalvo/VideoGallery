@@ -11,6 +11,7 @@ public class LexerTests
             {
                 { Type: TokenType.And } => "AND",
                 { Type: TokenType.Or } => "OR",
+                { Type: TokenType.Implies } => "IMPLIES",
                 { Type: TokenType.Not } => "NOT",
                 { Type: TokenType.Atom } a => $"A:{a.Value}",
                 { Type: TokenType.LeftParen } a => $"{a.Value}",
@@ -42,5 +43,13 @@ public class LexerTests
                 "EOI"
             },
             Check(result));
+    }
+
+    [Fact]
+    public void Implies()
+    {
+        var result = Lexer.Tokenize("A implies B", "and", "or", "not");
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new[] { "A:A", "IMPLIES", "A:B", "EOI" }, Check(result));
     }
 }

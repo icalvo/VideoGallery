@@ -5,6 +5,7 @@ public enum TokenType
     Atom,
     And,
     Or,
+    Implies,
     Not,
     LeftParen,
     RightParen,

@@ -29,6 +29,8 @@ public string[] AllTags { get; private set; } = [];
 
     public IEnumerable<CustomQuery> CustomQueries { get; set; } = [];
 
+    public HashSet<string> ReferencedQueryNames { get; set; } = [];
+
     public VideoGridModel(Application application)
     {
         _application = application;
@@ -46,6 +48,7 @@ public string[] AllTags { get; private set; } = [];
         var q = new QuerySpec (Search ?? "", SortType, SortField);
 
         CustomQueries = await _application.GetCustomQueries(ct);
+        ReferencedQueryNames = QueryReferences.GetAllReferencedNames(CustomQueries.Select(cq => cq.Spec.Search));
         AllTags = await _application.GetAllTagNames(ct);
         Videos = await _application.GetVideos(q, ct);
         TotalVideosCount = await _application.GetVideosCount(ct);
@@ -89,9 +92,19 @@ public string[] AllTags { get; private set; } = [];
 
     public async Task<IActionResult> OnPostSaveQuery(string queryName, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(queryName))
+            return RedirectToReturnUrl("Query name is required");
         var querySpec = new QuerySpec(Search ?? "", SortType, SortField);
         await _application.UpsertCustomQuery(queryName, querySpec, ct);
-        return RedirectToReturnUrl();
+        return RedirectToPage("./Index", querySpec);
+    }
+
+    public async Task<IActionResult> OnPostRenameQuery(string queryName, string newQueryName, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(queryName) || string.IsNullOrWhiteSpace(newQueryName))
+            return RedirectToReturnUrl("Query name and new name are required");
+        var error = await _application.RenameCustomQuery(queryName, newQueryName, ct);
+        return RedirectToReturnUrl(error);
     }
     
     public async Task<IActionResult> OnPostDeleteQuery(string queryName, CancellationToken ct)

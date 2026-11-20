@@ -12,7 +12,7 @@ public static class QueryableExtensions
         sortType switch
         {
             SortingType.Ascending when q is IOrderedQueryable<TSource> oq => oq.ThenBy(keySelector),
-            SortingType.Descending when q is IOrderedQueryable<TSource> oq => oq.ThenBy(keySelector),
+            SortingType.Descending when q is IOrderedQueryable<TSource> oq => oq.ThenByDescending(keySelector),
             SortingType.Ascending => q.OrderBy(keySelector),
             SortingType.Descending => q.OrderByDescending(keySelector),
             _ => q
